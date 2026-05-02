@@ -11,6 +11,105 @@ interface ProductCardProps {
   product: Product;
 }
 
+const SUBCATEGORY_IMAGES: Record<string, string[]> = {
+  "Moisturizers": [
+    "photo-1556228720-195a672e8a03",   // cream jar on white
+    "photo-1598440947619-2c35fc9aa908", // skincare tube/cream
+    "photo-1616683693504-3ea7e9ad6fec", // skincare product
+  ],
+  "Serums": [
+    "photo-1620916566398-39f1143ab7be", // serum dropper bottle
+    "photo-1596755389378-c31d21fd1273", // woman holding serum
+    "photo-1559181567-c3190ca9959b",    // beauty serum
+  ],
+  "Face Masks": [
+    "photo-1570172619644-dfd03ed5d881", // face mask flatlay
+    "photo-1607748851687-ba9a10438621", // mask product
+    "photo-1608248543803-ba4f8c70ae0b", // clay mask jar
+  ],
+  "Scrubs": [
+    "photo-1608248543803-ba4f8c70ae0b", // scrub jar
+    "photo-1556228578-0d85b1a4d571",    // skincare product
+  ],
+  "Toners": [
+    "photo-1601049676869-702ea24cfd58", // toner bottle
+    "photo-1556228453-efd6c1ff04f6",    // toner/essence
+  ],
+  "Eye Cream": [
+    "photo-1571781926291-c477ebfd024b", // skincare cream
+    "photo-1559181567-c3190ca9959b",    // eye cream
+  ],
+  "SPF": [
+    "photo-1598440947619-2c35fc9aa908", // sunscreen
+    "photo-1540555700478-4be289fbecef", // skincare set
+  ],
+  "Cleansers": [
+    "photo-1576426863848-c21f53c60b19", // foam cleanser
+    "photo-1556228578-0d85b1a4d571",    // cleanser bottle
+    "photo-1601049676869-702ea24cfd58", // cleanser liquid
+  ],
+  "Shampoo": [
+    "photo-1527799820374-dcf8d9d4a388", // hair care bottles
+    "photo-1618354691438-25bc04584c23", // hair oil/care
+  ],
+  "Conditioner": [
+    "photo-1618354691438-25bc04584c23", // hair conditioner
+    "photo-1527799820374-dcf8d9d4a388", // hair product
+  ],
+  "Hair Masks": [
+    "photo-1618354691438-25bc04584c23", // hair mask
+    "photo-1583195764036-6dc248ac07d9", // hair treatment
+  ],
+  "Hair Oils": [
+    "photo-1618354691438-25bc04584c23", // hair oil bottle
+    "photo-1526758097130-bab247274f58", // oil product
+  ],
+  "Scalp Treatments": [
+    "photo-1527799820374-dcf8d9d4a388", // scalp product
+    "photo-1616683693504-3ea7e9ad6fec", // treatment bottle
+  ],
+  "Body Lotions": [
+    "photo-1571781926291-c477ebfd024b", // body lotion jar
+    "photo-1526758097130-bab247274f58", // lotion bottle
+  ],
+  "Body Scrubs": [
+    "photo-1608248543803-ba4f8c70ae0b", // scrub jar
+    "photo-1526758097130-bab247274f58", // body scrub
+  ],
+  "Body Oils": [
+    "photo-1526758097130-bab247274f58", // body oil
+    "photo-1571781926291-c477ebfd024b", // oil bottle
+  ],
+  "Body Wash": [
+    "photo-1576426863848-c21f53c60b19", // wash bottle
+    "photo-1556228578-0d85b1a4d571",    // body wash
+  ],
+  "Hand Cream": [
+    "photo-1556228720-195a672e8a03",    // hand cream jar
+    "photo-1571781926291-c477ebfd024b", // cream tube
+  ],
+  "Sets & Bundles": [
+    "photo-1540555700478-4be289fbecef", // luxury skincare set
+    "photo-1583195764036-6dc248ac07d9", // beauty gift set
+    "photo-1498843053639-170ff2122f35", // skincare collection
+  ],
+};
+
+function getProductImage(product: Product): string {
+  const existing = (product.images as string[])?.[0];
+  if (existing && !existing.includes("picsum.photos")) return existing;
+
+  const subcategory = product.subcategory ?? "";
+  const pool = SUBCATEGORY_IMAGES[subcategory] ?? ["photo-1540555700478-4be289fbecef"];
+
+  let hash = 0;
+  for (let i = 0; i < (product.slug ?? "").length; i++) {
+    hash = ((hash << 5) - hash + (product.slug ?? "").charCodeAt(i)) | 0;
+  }
+  const idx = Math.abs(hash) % pool.length;
+  return `https://images.unsplash.com/${pool[idx]}?w=600&q=85&fit=crop&auto=format`;
+}
+
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -41,30 +140,39 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price));
-  const salePrice = product.salePrice != null ? (typeof product.salePrice === 'number' ? product.salePrice : parseFloat(String(product.salePrice))) : null;
+  const price = typeof product.price === "number" ? product.price : parseFloat(String(product.price));
+  const salePrice =
+    product.salePrice != null
+      ? typeof product.salePrice === "number"
+        ? product.salePrice
+        : parseFloat(String(product.salePrice))
+      : null;
+
+  const imgSrc = getProductImage(product);
 
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+    <motion.div whileHover={{ y: -6 }} transition={{ duration: 0.25 }}>
       <Link href={`/products/${product.slug}`} className="block group">
-        <div className="relative overflow-hidden bg-card border border-card-border aspect-[3/4]">
+        <div className="relative overflow-hidden bg-card border border-card-border aspect-[3/4] rounded-sm shadow-sm">
           <img
-            src={(product.images as string[])[0] ?? `https://picsum.photos/seed/${product.slug}/400/500`}
+            src={imgSrc}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108"
+            loading="lazy"
           />
+
           {product.isBestSeller && (
-            <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] tracking-widest uppercase px-2 py-1 font-sans">
+            <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] tracking-widest uppercase px-2.5 py-1 font-sans shadow-sm">
               Bestseller
             </span>
           )}
           {product.isNewArrival && !product.isBestSeller && (
-            <span className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] tracking-widest uppercase px-2 py-1 font-sans">
+            <span className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] tracking-widest uppercase px-2.5 py-1 font-sans shadow-sm">
               New
             </span>
           )}
           {salePrice && (
-            <span className="absolute top-3 right-3 bg-destructive text-destructive-foreground text-[10px] tracking-widest uppercase px-2 py-1 font-sans">
+            <span className="absolute top-3 right-3 bg-destructive text-destructive-foreground text-[10px] tracking-widest uppercase px-2.5 py-1 font-sans">
               Sale
             </span>
           )}
@@ -72,30 +180,30 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-1 p-3">
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-primary text-primary-foreground text-xs tracking-widest uppercase py-3 hover:opacity-90 transition-opacity font-sans flex items-center justify-center gap-2"
+              className="flex-1 bg-primary text-primary-foreground text-xs tracking-widest uppercase py-3 hover:opacity-90 transition-opacity font-sans flex items-center justify-center gap-2 shadow"
             >
-              <ShoppingBag size={14} />
+              <ShoppingBag size={13} />
               Add to Cart
             </button>
             <button
               onClick={handleWishlist}
-              className="bg-background/80 backdrop-blur-sm border border-border p-3 hover:text-primary transition-colors"
+              className="bg-white/90 backdrop-blur-sm border border-border p-3 hover:text-primary transition-colors"
             >
-              <Heart size={14} />
+              <Heart size={13} />
             </button>
           </div>
         </div>
 
-        <div className="mt-3 space-y-1">
-          <p className="text-muted-foreground text-xs tracking-widest uppercase">{product.subcategory}</p>
-          <h3 className="font-serif text-base text-foreground group-hover:text-primary transition-colors">{product.name}</h3>
+        <div className="mt-3 space-y-1 px-0.5">
+          <p className="text-muted-foreground text-[10px] tracking-widest uppercase font-sans">{product.subcategory}</p>
+          <h3 className="font-serif text-base text-foreground group-hover:text-primary transition-colors leading-snug">{product.name}</h3>
           <div className="flex items-center gap-2">
             <div className="flex">
-              {[1, 2, 3, 4, 5].map(s => (
+              {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
                   size={10}
-                  className={s <= Math.round(Number(product.rating)) ? "fill-primary text-primary" : "fill-muted text-muted"}
+                  className={s <= Math.round(Number(product.rating)) ? "fill-primary text-primary" : "fill-muted text-muted-foreground/30"}
                 />
               ))}
             </div>
@@ -104,7 +212,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="flex items-center gap-2 font-sans">
             {salePrice ? (
               <>
-                <span className="text-primary font-medium">${salePrice.toFixed(2)}</span>
+                <span className="text-primary font-semibold">${salePrice.toFixed(2)}</span>
                 <span className="text-muted-foreground line-through text-sm">${price.toFixed(2)}</span>
               </>
             ) : (
