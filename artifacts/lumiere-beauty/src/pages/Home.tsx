@@ -241,7 +241,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Skincare", img: "photo-1556228720-195a672e8a03", href: "/products?category=Skincare" },
-              { label: "Hair Care", img: "photo-1527799820374-dcf8d9d4a388", href: "/products?category=Hair+Care" },
+              { label: "Hair Care", img: "photo-1631390078173-78f4a5f87fa4", href: "/products?category=Hair+Care" },
               { label: "Body Care", img: "photo-1571781926291-c477ebfd024b", href: "/products?category=Body+Care" },
               { label: "Sets & Bundles", img: "photo-1540555700478-4be289fbecef", href: "/products?category=Sets+%26+Bundles" },
             ].map((cat, i) => (
