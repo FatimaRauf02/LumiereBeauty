@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Menu, X, User, Heart } from "lucide-react";
+import { ShoppingBag, Menu, X, User, Heart, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useLogout } from "@workspace/api-client-react";
@@ -90,6 +90,12 @@ export default function Navbar() {
             <Link href="/account#wishlist" className="hidden lg:block">
               <Heart size={18} className="text-muted-foreground hover:text-primary transition-colors" />
             </Link>
+
+            {user?.role === "admin" && (
+              <Link href="/admin" className="hidden lg:block" title="Admin Dashboard">
+                <LayoutDashboard size={18} className="text-primary hover:opacity-70 transition-opacity" />
+              </Link>
+            )}
 
             <Link href="/cart" className="relative">
               <ShoppingBag size={18} className="text-foreground hover:text-primary transition-colors" />
