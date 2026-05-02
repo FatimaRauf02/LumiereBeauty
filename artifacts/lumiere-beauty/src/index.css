@@ -46,37 +46,43 @@
 }
 
 :root {
-  --background: 0 0% 4%;
-  --foreground: 40 20% 95%;
+  /* Warm cream / skin-tone background */
+  --background: 32 38% 96%;
+  --foreground: 20 28% 16%;
 
-  --card: 0 0% 6%;
-  --card-foreground: 40 20% 95%;
-  --card-border: 0 0% 12%;
+  /* White cards */
+  --card: 0 0% 100%;
+  --card-foreground: 20 28% 16%;
+  --card-border: 30 25% 88%;
 
-  --popover: 0 0% 6%;
-  --popover-foreground: 40 20% 95%;
-  --popover-border: 0 0% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 28% 16%;
+  --popover-border: 30 25% 88%;
 
-  --primary: 40 45% 61%;
-  --primary-foreground: 0 0% 4%;
+  /* Dusty rose / rose-gold primary */
+  --primary: 350 42% 50%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 40 20% 95%;
+  /* Light peach secondary */
+  --secondary: 32 30% 93%;
+  --secondary-foreground: 20 28% 22%;
 
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 65%;
+  /* Warm light muted */
+  --muted: 32 22% 92%;
+  --muted-foreground: 20 15% 48%;
 
-  --accent: 340 30% 65%;
-  --accent-foreground: 0 0% 4%;
+  /* Baby pink accent */
+  --accent: 344 58% 78%;
+  --accent-foreground: 350 35% 28%;
 
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 15%;
-  --input: 0 0% 15%;
-  --ring: 40 45% 61%;
+  --border: 30 22% 86%;
+  --input: 30 22% 86%;
+  --ring: 350 42% 50%;
 
-  --radius: 0.125rem;
+  --radius: 0.25rem;
 }
 
 @layer base {
@@ -90,3 +96,11 @@
     @apply font-serif;
   }
 }
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: hsl(32 38% 96%); }
+::-webkit-scrollbar-thumb { background: hsl(344 58% 78%); border-radius: 3px; }
+
+/* Selection highlight */
+::selection { background: hsl(344 58% 78% / 0.35); }
