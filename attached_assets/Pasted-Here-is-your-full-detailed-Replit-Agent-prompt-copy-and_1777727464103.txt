@@ -1,0 +1,290 @@
+Here is your full detailed Replit Agent prompt — copy and paste this exactly:
+
+---
+
+> Build me a complete full stack MERN ecommerce website for a premium skincare and beauty brand called **"Lumière Beauty"**. This must look and feel like Fenty Beauty or Kylie Cosmetics — world class, professional, luxury but approachable.
+>
+> ---
+>
+> ## TECH STACK
+> - Frontend: React + Vite + Tailwind CSS
+> - Backend: Node.js + Express.js
+> - Database: MongoDB + Mongoose
+> - Auth: JWT with refresh token rotation
+> - HTTP Client: Axios
+> - Animations: Framer Motion
+> - Voice Agent: Retell AI + Twilio Voice
+> - AI Chatbot: Anthropic Claude API
+>
+> ---
+>
+> ## COLOR SCHEME & FONTS
+> - Primary: Baby pink #F8D7DA
+> - Secondary: Warm skin tone #F2C4A0
+> - Accent: Deep rose #C2185B
+> - Background: Soft cream #FFF8F5
+> - Text: Dark charcoal #2D2D2D
+> - Font for headings: Cormorant Garamond (elegant, luxury serif)
+> - Font for body: DM Sans (clean, modern readable)
+> - Import both from Google Fonts
+>
+> ---
+>
+> ## PAGES TO BUILD
+>
+> ### 1. HOME PAGE
+> - Full screen hero section with animated background gradient in baby pink and skin tones
+> - Large elegant headline: "Your Skin. Your Ritual. Your Glow." with word-by-word fade-in animation
+> - Subheadline and two CTA buttons: "Shop Now" and "Take Skin Quiz"
+> - Floating product image on the right with parallax scroll effect
+> - Marquee ticker below hero showing: "Free shipping over $50 · Cruelty Free · Dermatologist Tested · Clean Ingredients ·"
+> - Featured categories section with hover zoom cards: Skincare, Hair Care, Body Care, Sets & Bundles
+> - Best Sellers section — horizontal scroll on mobile, grid on desktop
+> - "How It Works" section with 3 steps: Take Quiz → Get Recommendations → Glow
+> - Skin Quiz CTA banner — full width, pink gradient background, button opens quiz modal
+> - Customer reviews carousel with star ratings, photo, name, skin type
+> - Instagram-style UGC grid section "As Seen On Skin"
+> - Footer with newsletter signup, links, social icons
+>
+> ### 2. PRODUCTS PAGE
+> - Left sidebar with category filters:
+>   - Skincare → Moisturizers, Serums, Face Masks, Scrubs, Toners, Eye Cream, SPF, Cleansers
+>   - Hair Care → Shampoo, Conditioner, Hair Masks, Hair Oils, Scalp Treatments
+>   - Body Care → Body Lotions, Body Scrubs, Body Oils, Hand Cream, Body Wash
+>   - Sets & Bundles
+> - Filter by: Price range slider, Rating, Skin Type (Oily, Dry, Combination, Sensitive, Normal), In Stock only toggle
+> - Sort by: Best Selling, New Arrivals, Price Low-High, Price High-Low, Top Rated
+> - Product grid — 3 columns desktop, 2 tablet, 1 mobile
+> - Each product card shows: high quality product image, product name, short description, price, star rating, number of reviews, skin type tags, In Stock / Out of Stock badge, Add to Cart button, Quick View button, Wishlist heart icon
+> - Hover effect on product card: slight lift shadow, image zoom, show second product image
+>
+> ### 3. PRODUCT DETAIL PAGE
+> - Large product image gallery with thumbnail strip and zoom on hover
+> - Product name, brand, SKU, rating, review count
+> - Price with original and sale price if applicable
+> - Skin type compatibility tags
+> - Quantity selector
+> - Add to Cart and Buy Now buttons
+> - Product description tab — AI generated using Claude API based on product name and ingredients
+> - Ingredients tab
+> - How to Use tab
+> - Reviews tab — show scraped + user reviews with rating breakdown bar chart
+> - Related products section
+> - Recently viewed products section
+>
+> ### 4. SKIN QUIZ PAGE (full page, not just modal)
+> - Beautiful animated quiz UI — one question at a time with smooth slide transitions
+> - Questions:
+>   1. What is your skin type? (Oily / Dry / Combination / Sensitive / Normal)
+>   2. What are your main skin concerns? (multi-select: Acne, Dark spots, Wrinkles, Dullness, Uneven texture, Redness, Large pores)
+>   3. What is your age range? (Under 20 / 20s / 30s / 40s / 50+)
+>   4. How much time do you spend on skincare daily? (Under 5 mins / 5-10 mins / 10-20 mins / 20+ mins)
+>   5. What is your budget per product? (Under $20 / $20-$50 / $50-$100 / $100+)
+> - Progress bar at top showing quiz completion percentage
+> - After quiz → loading screen with text "Analyzing your skin profile..."
+> - Results page showing: Your Skin Profile card + Top 6 AI recommended products with explanation of why each was recommended
+> - Save results button (requires login) and Share results button
+>
+> ### 5. CART PAGE (also as slide-over sidebar)
+> - Slide-over cart drawer from right side
+> - Shows all cart items with image, name, price, quantity controls, remove button
+> - Order summary: subtotal, shipping (free over $50), discount code field, total
+> - Upsell section: "You might also love" — 2 AI recommended add-ons
+> - Proceed to Checkout button
+>
+> ### 6. CHECKOUT PAGE
+> - Multi-step: Shipping → Payment → Review Order → Confirmation
+> - Clean minimal form design
+> - Order summary sidebar
+> - Mock payment (no real payment gateway needed)
+> - Order confirmation page with order number and email confirmation message
+>
+> ### 7. AUTH PAGES
+> - Login page — clean card design with brand imagery
+> - Register page — with skin type preference selection during signup
+> - Forgot password page
+> - JWT stored in httpOnly cookie
+> - Refresh token rotation implemented
+>
+> ### 8. CUSTOMER ACCOUNT PAGE
+> - Order history with status badges
+> - Saved addresses
+> - Skin profile from quiz results
+> - Wishlist
+> - Account settings
+>
+> ### 9. ADMIN DASHBOARD (separate /admin route, protected)
+> - Overview cards: Total Revenue, Orders Today, Products, Customers
+> - Recent orders table with status update dropdown
+> - Product management: Add, Edit, Delete products with image upload
+> - Low stock alert panel — highlights products with stock under 10 units with red badge, sends email alert automatically using nodemailer
+> - Review management: view all scraped and user reviews
+> - Customer list with skin profile data
+> - Analytics: simple charts for sales by category, top products, revenue over time using Recharts
+>
+> ---
+>
+> ## AI FEATURES
+>
+> ### AI Chatbot (bottom right floating button)
+> - Floating chat bubble in deep rose color, female avatar icon
+> - Opens chat window with greeting: "Hi gorgeous! I'm Lumière, your personal beauty advisor. How can I help you today?"
+> - Connected to Anthropic Claude API
+> - System prompt makes it answer ONLY about:
+>   - Product recommendations based on skin type and concern
+>   - Ingredient questions
+>   - Routine advice
+>   - Order status (fetch from DB if user is logged in)
+>   - Quiz guidance
+> - If asked anything outside scope: "I'm your beauty expert! I can help with skincare, products, and your routine. For anything else please contact our support team."
+> - Never hallucinate product info — only recommend products that exist in the database
+> - Chat history persists per session
+>
+> ### AI Product Description Writer
+> - In admin dashboard, each product has "Generate AI Description" button
+> - Calls Claude API with: product name, category, key ingredients, skin type, concerns it targets
+> - Returns professional marketing copy in brand voice — luxurious, clean, empowering
+> - Auto-fills the product description field
+>
+> ### AI Product Recommendation Engine
+> - After skin quiz completion, sends quiz answers to Claude API
+> - Claude matches answers to products in MongoDB
+> - Returns top 6 products with personalized explanation for each
+> - Also shown in chatbot when user asks "what should I use for..."
+>
+> ### Product Review Scraper
+> - Background Node.js script that runs on server start
+> - Scrapes public reviews from Sephora and Ulta for matching product names
+> - Stores in MongoDB reviews collection with: reviewer name, rating, review text, date, source, verified badge
+> - Shown on product detail page reviews tab mixed with user reviews
+> - Admin can approve or reject scraped reviews
+>
+> ---
+>
+> ## VOICE AGENT
+> - Integrate Retell AI with Twilio Voice
+> - "Talk to Beauty Advisor" button on homepage and product pages
+> - Clicking opens a modal with animated voice wave UI
+> - Female voice, clear English, warm and professional tone
+> - Voice agent can:
+>   - Ask skin quiz questions and capture answers
+>   - Recommend products based on answers
+>   - Answer product questions
+>   - Help navigate the store
+> - Use RETELL_API_KEY and TWILIO_ACCOUNT_SID from environment variables
+>
+> ---
+>
+> ## BACKEND STRUCTURE
+>
+> ```
+> backend/
+> ├── config/
+> │   └── db.js
+> ├── controllers/
+> │   ├── auth.controller.js
+> │   ├── product.controller.js
+> │   ├── order.controller.js
+> │   ├── cart.controller.js
+> │   ├── review.controller.js
+> │   ├── quiz.controller.js
+> │   ├── chat.controller.js
+> │   └── admin.controller.js
+> ├── middleware/
+> │   ├── auth.middleware.js
+> │   ├── admin.middleware.js
+> │   ├── error.middleware.js
+> │   └── rateLimit.middleware.js
+> ├── models/
+> │   ├── user.model.js
+> │   ├── product.model.js
+> │   ├── order.model.js
+> │   ├── cart.model.js
+> │   ├── review.model.js
+> │   └── quiz.model.js
+> ├── routes/
+> │   ├── auth.routes.js
+> │   ├── product.routes.js
+> │   ├── order.routes.js
+> │   ├── cart.routes.js
+> │   ├── review.routes.js
+> │   ├── quiz.routes.js
+> │   ├── chat.routes.js
+> │   └── admin.routes.js
+> ├── utils/
+> │   ├── generateToken.js
+> │   ├── scraper.js
+> │   └── stockAlert.js
+> └── server.js
+> ```
+>
+> ---
+>
+> ## PRODUCTS SEED DATA
+> Seed the database with 40 products across all categories. Each product must have:
+> - name, slug, category, subcategory, description, ingredients, howToUse, price, salePrice, images (use placeholder URLs from picsum.photos with beauty-appropriate seeds), rating, reviewCount, stock, skinType array, concerns array, isBestSeller, isNewArrival, isFeatured
+>
+> Include these subcategories with at least 3-5 products each:
+> - Moisturizers, Serums, Face Masks, Scrubs, Toners, Eye Cream, SPF, Cleansers
+> - Shampoo, Conditioner, Hair Masks, Hair Oils
+> - Body Lotions, Body Scrubs, Body Oils, Body Wash
+>
+> ---
+>
+> ## ENVIRONMENT VARIABLES NEEDED
+> ```
+> MONGODB_URI=
+> JWT_SECRET=
+> JWT_REFRESH_SECRET=
+> ANTHROPIC_API_KEY=
+> RETELL_API_KEY=
+> TWILIO_ACCOUNT_SID=
+> TWILIO_AUTH_TOKEN=
+> TWILIO_PHONE_NUMBER=
+> CLIENT_URL=http://localhost:5173
+> PORT=5000
+> ```
+>
+> ---
+>
+> ## ANIMATIONS & UX DETAILS
+> - Page transitions: fade in on route change using Framer Motion
+> - Hero text: staggered word reveal on load
+> - Product cards: lift on hover with shadow, image scale
+> - Quiz: slide left/right between questions with spring animation
+> - Cart drawer: slide in from right with overlay backdrop
+> - Chatbot: bounce in animation on first load, pulse on new message
+> - Buttons: subtle scale on hover, ripple on click
+> - Loading states: skeleton loaders on all product grids
+> - Toast notifications: top right, branded pink style for add to cart, errors, success
+> - Scroll animations: fade up on all section entries using Intersection Observer
+> - Mobile navigation: hamburger menu with full screen overlay
+> - Sticky header that changes background on scroll
+>
+> ---
+>
+> ## RESPONSIVE DESIGN
+> - Mobile first approach
+> - Sidebar becomes bottom sheet on mobile
+> - Product grid: 1 col mobile, 2 col tablet, 3 col desktop
+> - Admin dashboard: collapsible sidebar on mobile
+> - All touch targets minimum 44px
+> - Quiz works perfectly on mobile with large tap targets
+>
+> ---
+>
+> ## IMPORTANT NOTES
+> - Use ES module syntax throughout (import/export)
+> - All folders lowercase (backend/, frontend/)
+> - bcryptjs for password hashing (not bcrypt)
+> - mongoose ObjectId (capital I in Id)
+> - pre("save") hook must be defined before mongoose.model() call
+> - Error handling middleware must be last in server.js
+> - All API routes prefixed with /api
+> - CORS configured for localhost:5173
+> - nodemon for development
+> - All environment variables loaded via dotenv
+
+---
+
+That's your complete prompt. Paste it into Replit Agent and it will scaffold the entire project. Want me to also give you the follow-up prompts for when it gets stuck or asks clarifying questions?
