@@ -7,6 +7,7 @@ import { CartProvider } from "@/hooks/use-cart";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import WelcomeCouponBanner from "@/components/WelcomeCouponBanner";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -47,6 +48,7 @@ function AppLayout() {
       </main>
       <Footer />
       <ChatWidget />
+      <WelcomeCouponBanner />
     </div>
   );
 }

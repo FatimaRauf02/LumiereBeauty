@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { productsTable, ordersTable, usersTable, reviewsTable } from "@workspace/db";
-import { eq, gte, lte, sql } from "drizzle-orm";
+import { eq, lte, sql } from "drizzle-orm";
 import { authenticate, requireAdmin, type AuthRequest } from "../middlewares/authenticate";
 import { anthropic } from "../lib/anthropic";
 
@@ -21,7 +21,7 @@ function formatProduct(p: typeof productsTable.$inferSelect) {
 }
 
 // Stats
-router.get("/admin/stats", async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
     const allOrders = await db.select().from(ordersTable);
     const allProducts = await db.select({ id: productsTable.id, stock: productsTable.stock }).from(productsTable);
@@ -54,7 +54,7 @@ router.get("/admin/stats", async (req, res) => {
 });
 
 // Products
-router.get("/admin/products", async (req, res) => {
+router.get("/products", async (req, res) => {
   try {
     const products = await db.select().from(productsTable);
     res.json({ products: products.map(formatProduct), total: products.length, page: 1, totalPages: 1 });
@@ -64,7 +64,7 @@ router.get("/admin/products", async (req, res) => {
   }
 });
 
-router.post("/admin/products", async (req, res) => {
+router.post("/products", async (req, res) => {
   try {
     const body = req.body;
     const [product] = await db.insert(productsTable).values({
@@ -81,7 +81,7 @@ router.post("/admin/products", async (req, res) => {
   }
 });
 
-router.put("/admin/products/:id", async (req, res) => {
+router.put("/products/:id", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     const body = req.body;
@@ -98,7 +98,7 @@ router.put("/admin/products/:id", async (req, res) => {
   }
 });
 
-router.delete("/admin/products/:id", async (req, res) => {
+router.delete("/products/:id", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     await db.delete(productsTable).where(eq(productsTable.id, id));
@@ -109,7 +109,7 @@ router.delete("/admin/products/:id", async (req, res) => {
   }
 });
 
-router.post("/admin/products/:id/generate-description", async (req, res) => {
+router.post("/products/:id/generate-description", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
@@ -138,7 +138,7 @@ Write 2-3 sentences in a sophisticated, empowering brand voice. Be specific abou
 });
 
 // Orders
-router.get("/admin/orders", async (req, res) => {
+router.get("/orders", async (req, res) => {
   try {
     const orders = await db.select().from(ordersTable).orderBy(sql`created_at DESC`);
     res.json(orders.map(o => ({
@@ -153,7 +153,7 @@ router.get("/admin/orders", async (req, res) => {
   }
 });
 
-router.put("/admin/orders/:id/status", async (req, res) => {
+router.put("/orders/:id/status", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     const { status } = req.body;
@@ -171,7 +171,7 @@ router.put("/admin/orders/:id/status", async (req, res) => {
 });
 
 // Customers
-router.get("/admin/customers", async (req, res) => {
+router.get("/customers", async (req, res) => {
   try {
     const users = await db.select().from(usersTable);
     res.json(users.map(u => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role, skinType: u.skinType, createdAt: u.createdAt })));
@@ -182,7 +182,7 @@ router.get("/admin/customers", async (req, res) => {
 });
 
 // Reviews
-router.get("/admin/reviews", async (req, res) => {
+router.get("/reviews", async (req, res) => {
   try {
     const reviews = await db.select().from(reviewsTable);
     res.json(reviews.map(r => ({
@@ -196,7 +196,7 @@ router.get("/admin/reviews", async (req, res) => {
   }
 });
 
-router.put("/admin/reviews/:id/approve", async (req, res) => {
+router.put("/reviews/:id/approve", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     await db.update(reviewsTable).set({ isApproved: true }).where(eq(reviewsTable.id, id));
@@ -207,7 +207,7 @@ router.put("/admin/reviews/:id/approve", async (req, res) => {
   }
 });
 
-router.delete("/admin/reviews/:id", async (req, res) => {
+router.delete("/reviews/:id", async (req, res) => {
   try {
     const id = parseInt(String(req.params.id));
     await db.delete(reviewsTable).where(eq(reviewsTable.id, id));
@@ -219,7 +219,7 @@ router.delete("/admin/reviews/:id", async (req, res) => {
 });
 
 // Low stock
-router.get("/admin/low-stock", async (req, res) => {
+router.get("/low-stock", async (req, res) => {
   try {
     const products = await db.select().from(productsTable).where(lte(productsTable.stock, 10));
     res.json(products.map(formatProduct));
@@ -230,7 +230,7 @@ router.get("/admin/low-stock", async (req, res) => {
 });
 
 // Analytics
-router.get("/admin/sales-analytics", async (req, res) => {
+router.get("/sales-analytics", async (req, res) => {
   try {
     const orders = await db.select().from(ordersTable).where(eq(ordersTable.status, "delivered"));
 
@@ -241,13 +241,6 @@ router.get("/admin/sales-analytics", async (req, res) => {
     }
     const revenueByMonth = Array.from(monthMap.entries()).map(([month, revenue]) => ({ month, revenue }));
 
-    const categoryMap = new Map<string, number>();
-    for (const order of orders) {
-      for (const item of (order.items as { productId: number; quantity: number }[])) {
-        const cat = "Skincare";
-        categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + item.quantity);
-      }
-    }
     const salesByCategory = [
       { category: "Skincare", sales: Math.floor(Math.random() * 200) + 100 },
       { category: "Hair Care", sales: Math.floor(Math.random() * 150) + 50 },

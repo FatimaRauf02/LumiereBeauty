@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, Heart } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
@@ -13,85 +13,85 @@ interface ProductCardProps {
 
 const SUBCATEGORY_IMAGES: Record<string, string[]> = {
   "Moisturizers": [
-    "photo-1556228720-195a672e8a03",   // cream jar on white
-    "photo-1598440947619-2c35fc9aa908", // skincare tube/cream
-    "photo-1616683693504-3ea7e9ad6fec", // skincare product
+    "photo-1556228720-195a672e8a03",
+    "photo-1598440947619-2c35fc9aa908",
+    "photo-1571781926291-c477ebfd024b",
   ],
   "Serums": [
-    "photo-1620916566398-39f1143ab7be", // serum dropper bottle
-    "photo-1596755389378-c31d21fd1273", // woman holding serum
-    "photo-1559181567-c3190ca9959b",    // beauty serum
+    "photo-1620916566398-39f1143ab7be",
+    "photo-1559181567-c3190ca9959b",
+    "photo-1616683693504-3ea7e9ad6fec",
   ],
   "Face Masks": [
-    "photo-1570172619644-dfd03ed5d881", // face mask flatlay
-    "photo-1607748851687-ba9a10438621", // mask product
-    "photo-1608248543803-ba4f8c70ae0b", // clay mask jar
+    "photo-1570172619644-dfd03ed5d881",
+    "photo-1607748851687-ba9a10438621",
+    "photo-1608248543803-ba4f8c70ae0b",
   ],
   "Scrubs": [
-    "photo-1608248543803-ba4f8c70ae0b", // scrub jar
-    "photo-1556228578-0d85b1a4d571",    // skincare product
+    "photo-1608248543803-ba4f8c70ae0b",
+    "photo-1556228578-0d85b1a4d571",
   ],
   "Toners": [
-    "photo-1601049676869-702ea24cfd58", // toner bottle
-    "photo-1556228453-efd6c1ff04f6",    // toner/essence
+    "photo-1601049676869-702ea24cfd58",
+    "photo-1556228453-efd6c1ff04f6",
   ],
   "Eye Cream": [
-    "photo-1571781926291-c477ebfd024b", // skincare cream
-    "photo-1559181567-c3190ca9959b",    // eye cream
+    "photo-1571781926291-c477ebfd024b",
+    "photo-1559181567-c3190ca9959b",
   ],
   "SPF": [
-    "photo-1598440947619-2c35fc9aa908", // sunscreen
-    "photo-1540555700478-4be289fbecef", // skincare set
+    "photo-1598440947619-2c35fc9aa908",
+    "photo-1540555700478-4be289fbecef",
   ],
   "Cleansers": [
-    "photo-1576426863848-c21f53c60b19", // foam cleanser
-    "photo-1556228578-0d85b1a4d571",    // cleanser bottle
-    "photo-1601049676869-702ea24cfd58", // cleanser liquid
+    "photo-1576426863848-c21f53c60b19",
+    "photo-1556228578-0d85b1a4d571",
+    "photo-1601049676869-702ea24cfd58",
   ],
   "Shampoo": [
-    "photo-1527799820374-dcf8d9d4a388", // hair care bottles
-    "photo-1618354691438-25bc04584c23", // hair oil/care
+    "photo-1527799820374-dcf8d9d4a388",
+    "photo-1618354691438-25bc04584c23",
   ],
   "Conditioner": [
-    "photo-1618354691438-25bc04584c23", // hair conditioner
-    "photo-1527799820374-dcf8d9d4a388", // hair product
+    "photo-1618354691438-25bc04584c23",
+    "photo-1527799820374-dcf8d9d4a388",
   ],
   "Hair Masks": [
-    "photo-1618354691438-25bc04584c23", // hair mask
-    "photo-1583195764036-6dc248ac07d9", // hair treatment
+    "photo-1583195764036-6dc248ac07d9",
+    "photo-1618354691438-25bc04584c23",
   ],
   "Hair Oils": [
-    "photo-1618354691438-25bc04584c23", // hair oil bottle
-    "photo-1526758097130-bab247274f58", // oil product
+    "photo-1526758097130-bab247274f58",
+    "photo-1618354691438-25bc04584c23",
   ],
   "Scalp Treatments": [
-    "photo-1527799820374-dcf8d9d4a388", // scalp product
-    "photo-1616683693504-3ea7e9ad6fec", // treatment bottle
+    "photo-1527799820374-dcf8d9d4a388",
+    "photo-1616683693504-3ea7e9ad6fec",
   ],
   "Body Lotions": [
-    "photo-1571781926291-c477ebfd024b", // body lotion jar
-    "photo-1526758097130-bab247274f58", // lotion bottle
+    "photo-1571781926291-c477ebfd024b",
+    "photo-1580489944761-15a19d654956",
   ],
   "Body Scrubs": [
-    "photo-1608248543803-ba4f8c70ae0b", // scrub jar
-    "photo-1526758097130-bab247274f58", // body scrub
+    "photo-1608248543803-ba4f8c70ae0b",
+    "photo-1526758097130-bab247274f58",
   ],
   "Body Oils": [
-    "photo-1526758097130-bab247274f58", // body oil
-    "photo-1571781926291-c477ebfd024b", // oil bottle
+    "photo-1526758097130-bab247274f58",
+    "photo-1571781926291-c477ebfd024b",
   ],
   "Body Wash": [
-    "photo-1576426863848-c21f53c60b19", // wash bottle
-    "photo-1556228578-0d85b1a4d571",    // body wash
+    "photo-1576426863848-c21f53c60b19",
+    "photo-1556228578-0d85b1a4d571",
   ],
   "Hand Cream": [
-    "photo-1556228720-195a672e8a03",    // hand cream jar
-    "photo-1571781926291-c477ebfd024b", // cream tube
+    "photo-1556228720-195a672e8a03",
+    "photo-1571781926291-c477ebfd024b",
   ],
   "Sets & Bundles": [
-    "photo-1540555700478-4be289fbecef", // luxury skincare set
-    "photo-1583195764036-6dc248ac07d9", // beauty gift set
-    "photo-1498843053639-170ff2122f35", // skincare collection
+    "photo-1540555700478-4be289fbecef",
+    "photo-1498843053639-170ff2122f35",
+    "photo-1583195764036-6dc248ac07d9",
   ],
 };
 
@@ -99,9 +99,7 @@ function getProductImage(product: Product): string {
   const existing = (product.images as string[])?.[0];
   if (existing && !existing.includes("picsum.photos")) return existing;
 
-  const subcategory = product.subcategory ?? "";
-  const pool = SUBCATEGORY_IMAGES[subcategory] ?? ["photo-1540555700478-4be289fbecef"];
-
+  const pool = SUBCATEGORY_IMAGES[product.subcategory ?? ""] ?? ["photo-1540555700478-4be289fbecef"];
   let hash = 0;
   for (let i = 0; i < (product.slug ?? "").length; i++) {
     hash = ((hash << 5) - hash + (product.slug ?? "").charCodeAt(i)) | 0;
@@ -113,11 +111,20 @@ function getProductImage(product: Product): string {
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const wishlistMutation = useAddToWishlist();
   const { toast } = useToast();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign in required",
+        description: "Please create an account or sign in to add items to your cart.",
+      });
+      navigate("/auth");
+      return;
+    }
     try {
       await addToCart(product.id);
       toast({ title: "Added to cart", description: product.name });
@@ -129,7 +136,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast({ title: "Sign in required", description: "Please sign in to save wishlist items" });
+      toast({ title: "Sign in required", description: "Please sign in to save wishlist items." });
+      navigate("/auth");
       return;
     }
     try {
@@ -153,11 +161,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <motion.div whileHover={{ y: -6 }} transition={{ duration: 0.25 }}>
       <Link href={`/products/${product.slug}`} className="block group">
-        <div className="relative overflow-hidden bg-card border border-card-border aspect-[3/4] rounded-sm shadow-sm">
+        <div className="relative overflow-hidden bg-white border border-card-border aspect-[3/4] rounded-sm shadow-sm">
           <img
             src={imgSrc}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-108"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
           />
 
