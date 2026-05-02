@@ -10,6 +10,8 @@ import wishlistRouter from "./wishlist";
 import chatRouter from "./chat";
 import accountRouter from "./account";
 import adminRouter from "./admin";
+import newsletterRouter from "./newsletter";
+import couponsRouter from "./coupons";
 
 const router: IRouter = Router();
 
@@ -23,6 +25,8 @@ router.use(quizRouter);
 router.use(wishlistRouter);
 router.use(chatRouter);
 router.use(accountRouter);
-router.use(adminRouter);
+router.use("/admin", adminRouter);
+router.use(newsletterRouter);
+router.use(couponsRouter);
 
 export default router;
