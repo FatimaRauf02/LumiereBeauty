@@ -74,7 +74,7 @@ export default function Auth() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
           src={mode === "register"
-            ? "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=900&q=90&fit=crop&auto=format"
+            ? "/create-account-banner.jpg"
             : "https://images.unsplash.com/photo-1570194065650-d99fb4ee0e7e?w=900&q=90&fit=crop&auto=format"
           }
           alt="Luxury beauty products"
