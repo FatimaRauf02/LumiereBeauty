@@ -18,6 +18,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [expandedSection, setExpandedSection] = useState<string | null>("description");
+  const [selectedVariant, setSelectedVariant] = useState<{ label: string; price: number } | null>(null);
   const [reviewBody, setReviewBody] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState("");
@@ -31,6 +32,18 @@ export default function ProductDetail() {
   const queryClient = useQueryClient();
 
   const { data: product, isLoading } = useGetProductBySlug(slug!);
+
+  useEffect(() => {
+    if (product) {
+      const v = (product as any).variants as { label: string; price: number }[] | undefined;
+      if (v && v.length > 0) {
+        const mid = Math.floor(v.length / 2);
+        setSelectedVariant(v[mid]);
+      } else {
+        setSelectedVariant(null);
+      }
+    }
+  }, [product?.id]);
 
   const wishlistData = queryClient.getQueryData<Product[]>(getGetWishlistQueryKey());
   const isInWishlist = wishlistData?.some((p) => p.id === product?.id) ?? false;
@@ -46,9 +59,15 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    const variants = (product as any).variants as { label: string; price: number }[] | undefined;
+    if (variants && variants.length > 0 && !selectedVariant) {
+      toast({ title: "Please select a size", variant: "destructive" });
+      return;
+    }
     try {
-      await addToCart(product.id, quantity);
-      toast({ title: "Added to cart", description: `${quantity}x ${product.name}` });
+      await addToCart(product.id, quantity, selectedVariant?.label);
+      const variantSuffix = selectedVariant ? ` — ${selectedVariant.label}` : "";
+      toast({ title: "Added to cart", description: `${quantity}x ${product.name}${variantSuffix}` });
     } catch {
       toast({ title: "Error", description: "Could not add to cart", variant: "destructive" });
     }
@@ -132,6 +151,11 @@ export default function ProductDetail() {
   const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price));
   const salePrice = product.salePrice != null ? (typeof product.salePrice === 'number' ? product.salePrice : parseFloat(String(product.salePrice))) : null;
   const avgRating = typeof product.rating === 'number' ? product.rating : parseFloat(String(product.rating));
+  const productVariants = ((product as any).variants as { label: string; price: number }[] | undefined) ?? [];
+  const displayPrice = selectedVariant ? selectedVariant.price : (salePrice ?? price);
+  const displayOriginalPrice = selectedVariant && selectedVariant.price !== price
+    ? price
+    : (!selectedVariant && salePrice ? price : null);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
@@ -187,15 +211,39 @@ export default function ProductDetail() {
           </div>
 
           <div className="flex items-baseline gap-3">
-            {salePrice ? (
-              <>
-                <span className="font-serif text-3xl text-primary">${salePrice.toFixed(2)}</span>
-                <span className="text-muted-foreground line-through text-lg font-sans">${price.toFixed(2)}</span>
-              </>
-            ) : (
-              <span className="font-serif text-3xl">${price.toFixed(2)}</span>
+            <span className="font-serif text-3xl text-primary">${displayPrice.toFixed(2)}</span>
+            {displayOriginalPrice && (
+              <span className="text-muted-foreground line-through text-lg font-sans">${displayOriginalPrice.toFixed(2)}</span>
             )}
           </div>
+
+          {/* Variant selector */}
+          {productVariants.length > 0 && (
+            <div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground font-sans mb-3">
+                Size
+                {selectedVariant && <span className="text-foreground ml-2 normal-case tracking-normal">{selectedVariant.label}</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {productVariants.map((v) => (
+                  <button
+                    key={v.label}
+                    onClick={() => setSelectedVariant(v)}
+                    className={`px-4 py-2 text-xs font-sans border transition-all rounded-sm ${
+                      selectedVariant?.label === v.label
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border hover:border-primary/60 hover:text-primary"
+                    }`}
+                  >
+                    {v.label}
+                    <span className={`ml-2 ${selectedVariant?.label === v.label ? "opacity-75" : "text-muted-foreground"}`}>
+                      ${v.price.toFixed(2)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {product.stock > 0 ? (
             <p className="text-xs tracking-widest uppercase text-green-400 font-sans">In Stock</p>

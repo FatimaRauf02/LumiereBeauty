@@ -22,6 +22,7 @@ export const productsTable = pgTable("products", {
   isBestSeller: boolean("is_best_seller").notNull().default(false),
   isNewArrival: boolean("is_new_arrival").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
+  variants: json("variants").$type<{ label: string; price: number }[]>().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

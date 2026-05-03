@@ -95,7 +95,7 @@ export default function Cart() {
           <AnimatePresence>
             {items.map((item, i) => {
               const p = item.product;
-              const price = p.salePrice ?? p.price;
+              const price = (item as any).variantPrice ?? (p.salePrice ?? p.price);
               return (
                 <motion.div
                   key={item.id}
@@ -116,6 +116,11 @@ export default function Cart() {
                     <div>
                       <p className="text-[10px] tracking-widest uppercase text-muted-foreground font-sans">{p.subcategory}</p>
                       <Link href={`/products/${p.slug}`} className="font-serif text-lg hover:text-primary transition-colors">{p.name}</Link>
+                      {(item as any).variantLabel && (
+                        <span className="inline-block mt-1 px-2 py-0.5 text-[10px] tracking-wider uppercase font-sans border border-primary/30 text-primary/80 rounded-sm">
+                          {(item as any).variantLabel}
+                        </span>
+                      )}
                       <p className="font-sans text-sm font-medium mt-1 text-primary">${price.toFixed(2)}</p>
                     </div>
                     <div className="flex items-center justify-between">

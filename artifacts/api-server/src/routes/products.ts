@@ -26,6 +26,7 @@ function formatProduct(p: typeof productsTable.$inferSelect) {
     isBestSeller: p.isBestSeller,
     isNewArrival: p.isNewArrival,
     isFeatured: p.isFeatured,
+    variants: (p.variants as { label: string; price: number }[]) ?? [],
   };
 }
 

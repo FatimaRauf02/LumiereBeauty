@@ -10,6 +10,7 @@ export const cartItemsTable = pgTable("cart_items", {
   userId: integer("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
   productId: integer("product_id").references(() => productsTable.id, { onDelete: "cascade" }).notNull(),
   quantity: integer("quantity").notNull().default(1),
+  variantLabel: text("variant_label"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
