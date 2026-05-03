@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Check, Tag, ArrowRight, Layers } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useGetProducts, useGetCategories } from "@workspace/api-client-react";
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@workspace/api-client-react";
 
@@ -121,7 +122,9 @@ export default function BundleBuilder() {
   const { data: productsData, isLoading } = useGetProducts({ query: { enabled: true } });
   const { data: categories } = useGetCategories();
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const allProducts: Product[] = (productsData as any)?.products ?? [];
   const allCategories = ["All", ...(categories ?? []).map((c: any) => c.name ?? c)];
@@ -145,6 +148,10 @@ export default function BundleBuilder() {
   const bundleTotal = originalTotal - savings;
 
   const toggle = (id: number) => {
+    if (!isAuthenticated) {
+      navigate("/auth");
+      return;
+    }
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : isFull ? prev : [...prev, id]
     );

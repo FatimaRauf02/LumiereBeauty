@@ -18,6 +18,7 @@ function formatReview(r: typeof reviewsTable.$inferSelect) {
     skinType: r.skinType,
     source: r.source,
     isApproved: r.isApproved,
+    photos: (r.photos as string[]) ?? [],
     createdAt: r.createdAt.toISOString(),
   };
 }
@@ -37,7 +38,7 @@ router.get("/reviews/:productId", async (req, res) => {
 router.post("/reviews/:productId", authenticate, async (req: AuthRequest, res) => {
   try {
     const productId = parseInt(String(req.params.productId));
-    const { rating, title, body, skinType } = req.body;
+    const { rating, title, body, skinType, photos } = req.body;
     const userId = req.user!.userId;
 
     const [product] = await db.select({ id: productsTable.id }).from(productsTable).where(eq(productsTable.id, productId)).limit(1);
@@ -45,6 +46,10 @@ router.post("/reviews/:productId", authenticate, async (req: AuthRequest, res) =
       res.status(404).json({ message: "Product not found" });
       return;
     }
+
+    const sanitizedPhotos: string[] = Array.isArray(photos)
+      ? photos.filter((p: unknown) => typeof p === "string" && p.startsWith("data:image/")).slice(0, 3)
+      : [];
 
     const [review] = await db.insert(reviewsTable).values({
       productId,
@@ -56,6 +61,7 @@ router.post("/reviews/:productId", authenticate, async (req: AuthRequest, res) =
       skinType: skinType ?? null,
       source: "user",
       isApproved: true,
+      photos: sanitizedPhotos,
     }).returning();
 
     // Update product rating
