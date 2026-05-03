@@ -17,6 +17,7 @@ function formatProduct(p: typeof productsTable.$inferSelect) {
     images: p.images as string[], rating: parseFloat(p.rating), reviewCount: p.reviewCount, stock: p.stock,
     skinTypes: p.skinTypes as string[], concerns: p.concerns as string[],
     isBestSeller: p.isBestSeller, isNewArrival: p.isNewArrival, isFeatured: p.isFeatured,
+    variants: (p.variants as { label: string; price: number }[]) ?? [],
   };
 }
 
@@ -91,6 +92,26 @@ router.put("/products/:id", async (req, res) => {
       salePrice: body.salePrice?.toString() ?? null,
       updatedAt: new Date(),
     }).where(eq(productsTable.id, id)).returning();
+    res.json(formatProduct(product));
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/products/:id/variants", async (req, res) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { variants } = req.body;
+    if (!Array.isArray(variants)) { res.status(400).json({ message: "variants must be an array" }); return; }
+    const cleaned = variants
+      .filter((v: any) => typeof v.label === "string" && v.label.trim() && typeof v.price === "number" && !isNaN(v.price))
+      .map((v: any) => ({ label: v.label.trim(), price: Math.round(v.price * 100) / 100 }));
+    const [product] = await db.update(productsTable)
+      .set({ variants: cleaned, updatedAt: new Date() })
+      .where(eq(productsTable.id, id))
+      .returning();
+    if (!product) { res.status(404).json({ message: "Product not found" }); return; }
     res.json(formatProduct(product));
   } catch (err) {
     req.log.error(err);
