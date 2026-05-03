@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 import WelcomeCouponBanner from "@/components/WelcomeCouponBanner";
 import CompareBar from "@/components/CompareBar";
+import FlashSaleBanner from "@/components/FlashSaleBanner";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -36,6 +37,7 @@ const queryClient = new QueryClient({
 function AppLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <FlashSaleBanner />
       <Navbar />
       <main className="flex-1">
         <Switch>
