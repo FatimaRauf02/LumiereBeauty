@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
-import { BarChart3, Package, ShoppingCart, Users, Star, TrendingUp, AlertTriangle, Plus, Pencil, Trash2, X, Check, Loader2, Sparkles, Upload, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BarChart3, Package, ShoppingCart, Users, Star, TrendingUp, AlertTriangle, Plus, Pencil, Trash2, X, Check, Loader2, Sparkles, Upload, Info, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import {
   useGetAdminStats, useAdminGetProducts, useAdminGetOrders, useAdminGetCustomers,
   useAdminGetReviews, useGetLowStockProducts, useGetSalesAnalytics,
@@ -15,6 +15,7 @@ import { Link } from "wouter";
 const TABS = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "products", label: "Products", icon: Package },
+  { key: "variants", label: "Variants", icon: Layers },
   { key: "orders", label: "Orders", icon: ShoppingCart },
   { key: "customers", label: "Customers", icon: Users },
   { key: "reviews", label: "Reviews", icon: Star },
@@ -744,6 +745,198 @@ function ReviewsTab() {
   );
 }
 
+function VariantsTab() {
+  const { data, isLoading, refetch } = useAdminGetProducts();
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingVariants, setEditingVariants] = useState<{ label: string; price: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const products = (data?.products ?? []).filter(p =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.subcategory ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const startEdit = (product: any) => {
+    const v = ((product.variants ?? []) as { label: string; price: number }[]);
+    setEditingVariants(v.map(x => ({ label: x.label, price: String(x.price) })));
+    setEditingId(product.id);
+  };
+
+  const cancelEdit = () => { setEditingId(null); setEditingVariants([]); };
+
+  const addVariant = () => setEditingVariants(v => [...v, { label: "", price: "" }]);
+  const removeVariant = (i: number) => setEditingVariants(v => v.filter((_, idx) => idx !== i));
+  const updateVariant = (i: number, key: "label" | "price", val: string) =>
+    setEditingVariants(v => v.map((x, idx) => idx === i ? { ...x, [key]: val } : x));
+
+  const saveVariants = async () => {
+    if (!editingId) return;
+    setSaving(true);
+    try {
+      const variants = editingVariants
+        .filter(v => v.label.trim() && v.price.trim())
+        .map(v => ({ label: v.label.trim(), price: parseFloat(v.price) }));
+      const token = localStorage.getItem("lumiere_access_token");
+      const res = await fetch(`/api/admin/products/${editingId}/variants`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ variants }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast({ title: "Variants saved" });
+      cancelEdit();
+      refetch();
+    } catch {
+      toast({ title: "Error saving variants", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputClass = "bg-white border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans rounded-lg";
+
+  if (isLoading) return <div className="space-y-2 animate-pulse">{[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-muted rounded-lg" />)}</div>;
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-5">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search products..."
+          className={`${inputClass} w-56`}
+        />
+        <p className="text-sm text-muted-foreground font-sans">{products.length} products</p>
+      </div>
+
+      <div className="space-y-2">
+        {products.map(p => {
+          const variants = ((p as any).variants ?? []) as { label: string; price: number }[];
+          const isExpanded = editingId === p.id;
+          return (
+            <div key={p.id} className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center gap-4 p-4">
+                <img
+                  src={(p.images as string[])[0] ?? ""}
+                  alt=""
+                  className="w-10 h-12 object-cover rounded bg-muted flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{p.name}</p>
+                  <p className="text-xs text-muted-foreground font-sans mb-1.5">{p.subcategory}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {variants.length === 0 ? (
+                      <span className="text-[10px] text-muted-foreground/50 font-sans italic">No variants configured</span>
+                    ) : (
+                      variants.map(v => (
+                        <span key={v.label} className="inline-block px-2 py-0.5 text-[10px] tracking-wide font-sans border border-primary/25 text-primary/75 rounded-sm bg-primary/5">
+                          {v.label} · ${Number(v.price).toFixed(2)}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => isExpanded ? cancelEdit() : startEdit(p)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs tracking-widest uppercase font-sans border rounded-lg transition-all flex-shrink-0 ${
+                    isExpanded
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/60 hover:text-primary"
+                  }`}
+                >
+                  {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {isExpanded ? "Close" : "Edit"}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="border-t border-border p-4 bg-muted/20 space-y-3">
+                      <p className="text-[10px] tracking-widest uppercase text-muted-foreground font-sans">
+                        Edit Variants — changes are reflected live on the product page
+                      </p>
+
+                      <div className="space-y-2">
+                        {editingVariants.map((v, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <input
+                              value={v.label}
+                              onChange={e => updateVariant(i, "label", e.target.value)}
+                              placeholder="Label (e.g. 30ml, Small, Rose)"
+                              className={`${inputClass} flex-1`}
+                            />
+                            <div className="relative w-32">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={v.price}
+                                onChange={e => updateVariant(i, "price", e.target.value)}
+                                placeholder="0.00"
+                                className={`${inputClass} w-full pl-6`}
+                              />
+                            </div>
+                            <button
+                              onClick={() => removeVariant(i)}
+                              className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10 flex-shrink-0"
+                              title="Remove"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        {editingVariants.length === 0 && (
+                          <p className="text-xs text-muted-foreground font-sans italic py-1">
+                            No variants — add one to show a size/shade selector on the product page.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          onClick={addVariant}
+                          className="flex items-center gap-1.5 text-xs font-sans px-3 py-2 border border-dashed border-primary/40 text-primary/70 rounded-lg hover:bg-primary/5 hover:border-primary transition-all"
+                        >
+                          <Plus size={12} />
+                          Add Variant
+                        </button>
+                        <div className="flex-1" />
+                        <button
+                          onClick={cancelEdit}
+                          className="text-xs font-sans px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveVariants}
+                          disabled={saving}
+                          className="flex items-center gap-1.5 text-xs font-sans px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                        >
+                          {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                          {saving ? "Saving…" : "Save Variants"}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsTab() {
   const { data, isLoading } = useGetSalesAnalytics();
   if (isLoading) return <div className="animate-pulse space-y-6">{[1,2].map(i => <div key={i} className="h-64 bg-muted rounded-xl" />)}</div>;
@@ -895,6 +1088,7 @@ export default function Admin() {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "products" && <ProductsTab />}
+            {activeTab === "variants" && <VariantsTab />}
             {activeTab === "orders" && <OrdersTab />}
             {activeTab === "customers" && <CustomersTab />}
             {activeTab === "reviews" && <ReviewsTab />}
