@@ -16,6 +16,7 @@ import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Auth from "@/pages/Auth";
 import Account from "@/pages/Account";
+import Wishlist from "@/pages/Wishlist";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
@@ -42,6 +43,7 @@ function AppLayout() {
           <Route path="/checkout" component={Checkout} />
           <Route path="/auth" component={Auth} />
           <Route path="/account" component={Account} />
+          <Route path="/wishlist" component={Wishlist} />
           <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>
