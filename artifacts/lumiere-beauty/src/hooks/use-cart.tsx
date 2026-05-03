@@ -8,7 +8,7 @@ interface CartContextType {
   cart: Cart | null;
   isLoading: boolean;
   sessionId: string;
-  addToCart: (productId: number, quantity?: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, variantLabel?: string) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -40,8 +40,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const invalidateCart = () => queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
 
-  const addToCart = async (productId: number, quantity = 1) => {
-    await addMutation.mutateAsync({ data: { productId, quantity } });
+  const addToCart = async (productId: number, quantity = 1, variantLabel?: string) => {
+    await addMutation.mutateAsync({ data: { productId, quantity, ...(variantLabel ? { variantLabel } : {}) } as any });
     await invalidateCart();
   };
   const updateItem = async (itemId: number, quantity: number) => {
