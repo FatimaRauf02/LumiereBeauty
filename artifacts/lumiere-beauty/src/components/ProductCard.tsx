@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, Heart } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
-import { useAddToWishlist } from "@workspace/api-client-react";
+import { useAddToWishlist, useRemoveFromWishlist, getGetWishlistQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@workspace/api-client-react";
 
@@ -113,7 +114,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const wishlistMutation = useAddToWishlist();
+  const removeWishlistMutation = useRemoveFromWishlist();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const wishlistData = queryClient.getQueryData<Product[]>(getGetWishlistQueryKey());
+  const isInWishlist = wishlistData?.some((p) => p.id === product.id) ?? false;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -141,10 +147,16 @@ export default function ProductCard({ product }: ProductCardProps) {
       return;
     }
     try {
-      await wishlistMutation.mutateAsync({ data: { productId: product.id } });
-      toast({ title: "Saved", description: "Added to wishlist" });
+      if (isInWishlist) {
+        await removeWishlistMutation.mutateAsync({ productId: String(product.id) });
+        toast({ title: "Removed", description: "Removed from wishlist" });
+      } else {
+        await wishlistMutation.mutateAsync({ data: { productId: product.id } });
+        toast({ title: "Saved", description: "Added to wishlist" });
+      }
+      await queryClient.invalidateQueries({ queryKey: getGetWishlistQueryKey() });
     } catch {
-      toast({ title: "Error", description: "Could not save item", variant: "destructive" });
+      toast({ title: "Error", description: "Could not update wishlist", variant: "destructive" });
     }
   };
 
@@ -195,9 +207,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             </button>
             <button
               onClick={handleWishlist}
-              className="bg-white/90 backdrop-blur-sm border border-border p-3 hover:text-primary transition-colors"
+              className={`backdrop-blur-sm border border-border p-3 transition-colors ${
+                isInWishlist
+                  ? "bg-primary/10 text-primary"
+                  : "bg-white/90 hover:text-primary"
+              }`}
             >
-              <Heart size={13} />
+              <Heart size={13} className={isInWishlist ? "fill-primary" : ""} />
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Package, User, MapPin, Heart, LogOut } from "lucide-react";
+import { Package, User, MapPin, Heart } from "lucide-react";
 import {
   useGetProfile, useGetOrders, useGetAddresses, useGetWishlist,
   useUpdateProfile, useAddAddress, useRemoveFromWishlist, useLogout
@@ -226,15 +226,11 @@ export default function Account() {
   const logoutMutation = useLogout();
   const [activeTab, setActiveTab] = useState("orders");
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-lg mx-auto px-4 pt-28 pb-20 text-center">
-        <h1 className="font-serif text-3xl font-light mb-4">My Account</h1>
-        <p className="text-muted-foreground font-sans mb-8">Please sign in to access your account.</p>
-        <Link href="/auth" className="bg-primary text-primary-foreground px-10 py-4 text-xs tracking-widest uppercase hover:opacity-90 font-sans">Sign In</Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!isAuthenticated) navigate("/auth");
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) return null;
 
   const handleLogout = async () => {
     try { await logoutMutation.mutateAsync(); } catch {}
@@ -245,14 +241,9 @@ export default function Account() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
-      <div className="mb-10 flex items-end justify-between">
-        <div>
-          <p className="text-xs tracking-[0.3em] uppercase text-primary mb-2 font-sans">Welcome back</p>
-          <h1 className="font-serif text-4xl font-light">{user?.firstName} {user?.lastName}</h1>
-        </div>
-        <button onClick={handleLogout} className="hidden lg:flex items-center gap-2 text-xs tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors font-sans">
-          <LogOut size={14} /> Sign Out
-        </button>
+      <div className="mb-10">
+        <p className="text-xs tracking-[0.3em] uppercase text-primary mb-2 font-sans">Welcome back</p>
+        <h1 className="font-serif text-4xl font-light">{user?.firstName} {user?.lastName}</h1>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">

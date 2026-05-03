@@ -13,6 +13,7 @@ import adminRouter from "./admin";
 import newsletterRouter from "./newsletter";
 import couponsRouter from "./coupons";
 import restockNotifyRouter from "./restockNotify";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use("/admin", adminRouter);
 router.use(newsletterRouter);
 router.use(couponsRouter);
 router.use(restockNotifyRouter);
+router.use(paymentsRouter);
 
 export default router;

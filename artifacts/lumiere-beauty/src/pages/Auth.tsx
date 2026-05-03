@@ -73,8 +73,8 @@ export default function Auth() {
       {/* Left decorative panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=900&q=90&fit=crop&auto=format"
-          alt="Skincare"
+          src="https://images.unsplash.com/photo-1570194065650-d99fb4ee0e7e?w=900&q=90&fit=crop&auto=format"
+          alt="Luxury beauty products"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-background/30 to-accent/25" />
