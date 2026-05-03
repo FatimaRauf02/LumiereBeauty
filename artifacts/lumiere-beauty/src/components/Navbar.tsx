@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: "Hair Care", category: "Hair+Care" },
   { label: "Body Care", category: "Body+Care" },
   { label: "Sets", category: "Sets+%26+Bundles" },
+  { label: "Build a Bundle", href: "/bundle" },
   { label: "Skin Quiz", href: "/quiz" },
 ];
 

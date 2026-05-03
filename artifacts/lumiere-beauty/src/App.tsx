@@ -21,6 +21,7 @@ import Wishlist from "@/pages/Wishlist";
 import Admin from "@/pages/Admin";
 import OrderTracking from "@/pages/OrderTracking";
 import Compare from "@/pages/Compare";
+import BundleBuilder from "@/pages/BundleBuilder";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ function AppLayout() {
           <Route path="/admin" component={Admin} />
           <Route path="/orders/:id" component={OrderTracking} />
           <Route path="/compare" component={Compare} />
+          <Route path="/bundle" component={BundleBuilder} />
           <Route component={NotFound} />
         </Switch>
       </main>

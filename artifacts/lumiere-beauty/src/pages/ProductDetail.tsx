@@ -3,13 +3,15 @@ import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, Heart, Minus, Plus, ChevronDown } from "lucide-react";
 import {
-  useGetProductBySlug, useGetRelatedProducts, useGetReviews, useCreateReview, useAddToWishlist
+  useGetProductBySlug, useGetRelatedProducts, useGetReviews, useCreateReview, useAddToWishlist, useRemoveFromWishlist, getGetWishlistQueryKey
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import ProductCard from "@/components/ProductCard";
+import type { Product } from "@workspace/api-client-react";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -25,8 +27,12 @@ export default function ProductDetail() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { addRecentlyViewed } = useRecentlyViewed();
+  const queryClient = useQueryClient();
 
   const { data: product, isLoading } = useGetProductBySlug(slug!);
+
+  const wishlistData = queryClient.getQueryData<Product[]>(getGetWishlistQueryKey());
+  const isInWishlist = wishlistData?.some((p) => p.id === product?.id) ?? false;
 
   useEffect(() => {
     if (product) addRecentlyViewed(product as any);
@@ -183,8 +189,15 @@ export default function ProductDetail() {
               <ShoppingBag size={16} />
               Add to Cart
             </button>
-            <button onClick={handleWishlist} className="border border-border p-4 hover:text-primary transition-colors">
-              <Heart size={16} />
+            <button
+              onClick={handleWishlist}
+              className={`border p-4 transition-colors ${
+                isInWishlist
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:text-primary hover:border-primary/50"
+              }`}
+            >
+              <Heart size={16} className={isInWishlist ? "fill-primary" : ""} />
             </button>
           </div>
 
