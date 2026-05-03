@@ -14,6 +14,7 @@ export default function Auth() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [skinType, setSkinType] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
   const [fieldError, setFieldError] = useState<{ field: string; msg: string } | null>(null);
@@ -27,7 +28,7 @@ export default function Auth() {
     setFieldError(null);
     try {
       if (mode === "register") {
-        await registerMutation.mutateAsync({ data: { email, password, firstName, lastName, skinType: skinType || undefined } });
+        await registerMutation.mutateAsync({ data: { email, password, firstName, lastName, skinType: skinType || undefined, referralCode: referralCode.trim().toUpperCase() || undefined } as any });
         setRegisterSuccess(true);
         setTimeout(() => {
           setMode("login");
@@ -203,19 +204,32 @@ export default function Auth() {
                 </div>
 
                 {mode === "register" && (
-                  <div>
-                    <label className="text-[11px] tracking-widest uppercase font-sans block mb-2 text-foreground/80">Skin Type (Optional)</label>
-                    <select
-                      value={skinType}
-                      onChange={(e) => setSkinType(e.target.value)}
-                      className="w-full bg-background border border-border px-4 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans text-foreground rounded-lg"
-                    >
-                      <option value="">Select your skin type</option>
-                      {["dry", "oily", "combination", "normal", "sensitive"].map((st) => (
-                        <option key={st} value={st}>{st.charAt(0).toUpperCase() + st.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div>
+                      <label className="text-[11px] tracking-widest uppercase font-sans block mb-2 text-foreground/80">Skin Type (Optional)</label>
+                      <select
+                        value={skinType}
+                        onChange={(e) => setSkinType(e.target.value)}
+                        className="w-full bg-background border border-border px-4 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans text-foreground rounded-lg"
+                      >
+                        <option value="">Select your skin type</option>
+                        {["dry", "oily", "combination", "normal", "sensitive"].map((st) => (
+                          <option key={st} value={st}>{st.charAt(0).toUpperCase() + st.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] tracking-widest uppercase font-sans block mb-2 text-foreground/80">Referral Code (Optional)</label>
+                      <input
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        className={inputClass()}
+                        placeholder="e.g. LUMIABC123"
+                        maxLength={20}
+                      />
+                      <p className="text-[10px] text-muted-foreground font-sans mt-1.5">Enter a friend's code to earn 100 bonus points on your first order</p>
+                    </div>
+                  </>
                 )}
 
                 <button

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Package, User, MapPin, Heart, Star, Gift, TrendingUp } from "lucide-react";
+import { Package, User, MapPin, Heart, Star, Gift, TrendingUp, Users, Copy, Check } from "lucide-react";
 import {
   useGetProfile, useGetOrders, useGetAddresses, useGetWishlist,
   useUpdateProfile, useAddAddress, useRemoveFromWishlist, useLogout
@@ -17,6 +17,7 @@ const TABS = [
   { key: "addresses", label: "Addresses", icon: MapPin },
   { key: "wishlist", label: "Wishlist", icon: Heart },
   { key: "loyalty", label: "Rewards", icon: Star },
+  { key: "referrals", label: "Refer", icon: Users },
 ];
 
 function OrdersTab() {
@@ -306,6 +307,123 @@ function LoyaltyTab() {
   );
 }
 
+function ReferralsTab() {
+  const [copied, setCopied] = useState(false);
+  const { data, isLoading } = useQuery<{
+    code: string;
+    refereeCount: number;
+    completedCount: number;
+    pendingCount: number;
+    pointsEarned: number;
+    referrerBonus: number;
+    refereeBonus: number;
+  }>({
+    queryKey: ["referrals-me"],
+    queryFn: async () => {
+      const token = localStorage.getItem("lumiere_access_token");
+      const res = await fetch("/api/referrals/me", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to fetch referral info");
+      return res.json();
+    },
+  });
+
+  const referralLink = data?.code
+    ? `${window.location.origin}/auth?ref=${data.code}`
+    : "";
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  if (isLoading) return <div className="animate-pulse space-y-4">{[1,2,3].map(i => <div key={i} className="h-20 bg-card rounded-xl" />)}</div>;
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      {/* Hero card */}
+      <div className="bg-gradient-to-br from-primary/10 via-accent/10 to-background border border-primary/20 rounded-2xl p-6">
+        <p className="text-xs tracking-[0.3em] uppercase text-primary font-sans mb-1">Refer a Friend</p>
+        <h2 className="font-serif text-2xl font-light mb-1">Share the glow</h2>
+        <p className="text-sm text-muted-foreground font-sans leading-relaxed">
+          You earn <span className="font-semibold text-foreground">{data?.referrerBonus ?? 200} pts</span> and your friend earns{" "}
+          <span className="font-semibold text-foreground">{data?.refereeBonus ?? 100} pts</span> when they place their first order.
+        </p>
+      </div>
+
+      {/* Your code */}
+      <div className="bg-card border border-card-border rounded-xl p-5">
+        <p className="text-xs tracking-widest uppercase font-sans text-muted-foreground mb-3">Your Referral Code</p>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 bg-background border border-border rounded-lg px-4 py-3">
+            <span className="font-mono text-lg font-semibold tracking-widest text-primary">{data?.code ?? "—"}</span>
+          </div>
+          <button
+            onClick={() => handleCopy(data?.code ?? "")}
+            className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground text-xs tracking-widest uppercase font-sans rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </div>
+
+      {/* Share link */}
+      <div className="bg-card border border-card-border rounded-xl p-5">
+        <p className="text-xs tracking-widest uppercase font-sans text-muted-foreground mb-3">Or Share This Link</p>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 bg-background border border-border rounded-lg px-4 py-3 overflow-hidden">
+            <span className="text-xs font-sans text-muted-foreground truncate block">{referralLink}</span>
+          </div>
+          <button
+            onClick={() => handleCopy(referralLink)}
+            className="flex items-center gap-2 px-4 py-3 border border-border text-xs tracking-widest uppercase font-sans rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
+          >
+            <Copy size={14} />
+            Copy
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Friends Invited", value: data?.refereeCount ?? 0, icon: Users },
+          { label: "Orders Placed", value: data?.completedCount ?? 0, icon: Check },
+          { label: "Points Earned", value: (data?.pointsEarned ?? 0).toLocaleString(), icon: Star },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-card border border-card-border rounded-xl p-4 text-center">
+            <Icon size={16} className="text-primary mx-auto mb-2" />
+            <p className="font-serif text-2xl font-light">{value}</p>
+            <p className="text-[10px] tracking-widest uppercase text-muted-foreground font-sans mt-1">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* How it works */}
+      <div className="bg-card border border-card-border rounded-xl p-5">
+        <p className="text-xs tracking-widest uppercase font-sans text-muted-foreground mb-4">How It Works</p>
+        <div className="space-y-4">
+          {[
+            { step: "1", title: "Share your code", desc: "Give your unique code or link to friends" },
+            { step: "2", title: "Friend signs up", desc: "They create an account using your code" },
+            { step: "3", title: "They place their first order", desc: `You get ${data?.referrerBonus ?? 200} pts · They get ${data?.refereeBonus ?? 100} pts` },
+          ].map(({ step, title, desc }) => (
+            <div key={step} className="flex items-start gap-4">
+              <span className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
+              <div>
+                <p className="text-sm font-sans font-medium text-foreground">{title}</p>
+                <p className="text-xs font-sans text-muted-foreground mt-0.5">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WishlistTab() {
   const { data: wishlist, isLoading, refetch } = useGetWishlist();
   const removeMutation = useRemoveFromWishlist();
@@ -388,6 +506,7 @@ export default function Account() {
             {activeTab === "addresses" && <AddressesTab />}
             {activeTab === "wishlist" && <WishlistTab />}
             {activeTab === "loyalty" && <LoyaltyTab />}
+            {activeTab === "referrals" && <ReferralsTab />}
           </motion.div>
         </div>
       </div>

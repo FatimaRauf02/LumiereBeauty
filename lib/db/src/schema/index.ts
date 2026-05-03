@@ -7,3 +7,4 @@ export * from "./reviews";
 export * from "./quiz";
 export * from "./wishlist";
 export * from "./loyalty";
+export * from "./referrals";

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db";
+import { usersTable, referralsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { getOrCreateReferralCode } from "./referrals";
 import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../lib/auth";
 import { authenticate, type AuthRequest } from "../middlewares/authenticate";
 
@@ -9,7 +10,7 @@ const router = Router();
 
 router.post("/auth/register", async (req, res) => {
   try {
-    const { email, password, firstName, lastName, skinType } = req.body;
+    const { email, password, firstName, lastName, skinType, referralCode } = req.body;
     if (!email || !password || !firstName || !lastName) {
       res.status(400).json({ message: "Missing required fields" });
       return;
@@ -32,6 +33,30 @@ router.post("/auth/register", async (req, res) => {
     const accessToken = generateAccessToken(user.id, user.role);
     const newRefreshToken = generateRefreshToken(user.id);
     await db.update(usersTable).set({ refreshToken: newRefreshToken }).where(eq(usersTable.id, user.id));
+
+    // Link referral if a valid code was provided
+    if (referralCode?.trim()) {
+      try {
+        const [refRow] = await db
+          .select()
+          .from(referralsTable)
+          .where(eq(referralsTable.code, referralCode.trim().toUpperCase()))
+          .limit(1);
+        if (refRow && refRow.referrerId !== user.id) {
+          await db.insert(referralsTable).values({
+            referrerId: refRow.referrerId,
+            code: refRow.code,
+            refereeId: user.id,
+          });
+        }
+      } catch {
+        // Non-fatal: referral link failure shouldn't block registration
+      }
+    }
+
+    // Generate a referral code for the new user
+    try { await getOrCreateReferralCode(user.id); } catch { /* non-fatal */ }
+
     res.cookie("refreshToken", newRefreshToken, { httpOnly: true, sameSite: "strict", maxAge: 7 * 24 * 60 * 60 * 1000 });
     res.status(201).json({
       user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, skinType: user.skinType, createdAt: user.createdAt },
