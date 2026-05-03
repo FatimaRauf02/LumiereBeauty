@@ -1,12 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateOrder } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Lock } from "lucide-react";
+import { CheckCircle, Lock, Tag, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const VALID_COUPONS: Record<string, { discount: number; label: string }> = {
+  WELCOME10: { discount: 10, label: "10% off — Welcome offer" },
+  GLOW10: { discount: 10, label: "10% off — Glow promo" },
+  BEAUTY5: { discount: 5, label: "5% off — Beauty special" },
+  LUMIERE15: { discount: 15, label: "15% off — Lumière exclusive" },
+};
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "");
 
@@ -119,8 +127,12 @@ function PaymentForm({
 export default function Checkout() {
   const { cart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [completed, setCompleted] = useState<any>(null);
   const [shippingDone, setShippingDone] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [form, setForm] = useState<ShippingForm>({
     fullName: "", street: "", city: "", state: "", zip: "", country: "US",
@@ -129,14 +141,42 @@ export default function Checkout() {
   const update = (field: keyof ShippingForm, value: string) =>
     setForm(f => ({ ...f, [field]: value }));
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    await new Promise(r => setTimeout(r, 400));
+    const match = VALID_COUPONS[couponCode.trim().toUpperCase()];
+    if (match) {
+      setAppliedCoupon({ code: couponCode.trim().toUpperCase(), ...match });
+      toast({ title: "Coupon applied!", description: match.label });
+    } else {
+      try {
+        const res = await fetch("/api/coupons/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: couponCode.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message ?? "Invalid coupon");
+        setAppliedCoupon(data);
+        toast({ title: "Coupon applied!", description: data.label });
+      } catch (err: any) {
+        toast({ title: "Invalid coupon", description: err.message ?? "Please check your code.", variant: "destructive" });
+      }
+    }
+    setCouponLoading(false);
+  };
+
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
   const shipping = cart?.shipping ?? 0;
-  const total = cart?.total ?? 0;
+  const baseTotal = cart?.total ?? 0;
+  const discountAmount = appliedCoupon ? parseFloat(((baseTotal * appliedCoupon.discount) / 100).toFixed(2)) : 0;
+  const total = Math.max(0, baseTotal - discountAmount);
 
   const stripeOptions = {
     mode: "payment" as const,
-    amount: Math.round(total * 100),
+    amount: Math.max(50, Math.round(total * 100)),
     currency: "usd",
     appearance: {
       theme: "stripe" as const,
@@ -329,6 +369,58 @@ export default function Checkout() {
                 </div>
               );
             })}
+
+            {/* Coupon section */}
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs tracking-widest uppercase font-sans text-foreground mb-2">Coupon Code</p>
+              {appliedCoupon ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5"
+                >
+                  <CheckCircle size={14} className="text-green-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-sans font-semibold text-green-700">{appliedCoupon.code}</p>
+                    <p className="text-[11px] text-green-600 font-sans">{appliedCoupon.label}</p>
+                  </div>
+                  <button
+                    onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}
+                    disabled={shippingDone}
+                    className="text-green-500 hover:text-green-700 disabled:opacity-40"
+                  >
+                    <X size={13} />
+                  </button>
+                </motion.div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Tag size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={couponCode}
+                      onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                      onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
+                      placeholder="WELCOME10"
+                      disabled={shippingDone}
+                      className="w-full bg-background border border-border pl-8 pr-2 py-2 text-xs font-sans tracking-wider focus:outline-none focus:ring-1 focus:ring-primary rounded-lg disabled:opacity-50"
+                    />
+                  </div>
+                  <button
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim() || shippingDone}
+                    className="px-3 py-2 bg-foreground text-background text-[10px] tracking-widest uppercase font-sans rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40"
+                  >
+                    {couponLoading ? "..." : "Apply"}
+                  </button>
+                </div>
+              )}
+              {!appliedCoupon && (
+                <p className="text-[10px] text-muted-foreground font-sans mt-1.5">
+                  Try: <button className="text-primary hover:underline" onClick={() => setCouponCode("WELCOME10")}>WELCOME10</button>, GLOW10, LUMIERE15
+                </p>
+              )}
+            </div>
+
             <div className="border-t border-border pt-4 space-y-2 text-sm font-sans">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
@@ -337,7 +429,17 @@ export default function Checkout() {
                 <span>Shipping</span>
                 <span>{shipping === 0 ? <span className="text-green-500">Free</span> : `$${shipping.toFixed(2)}`}</span>
               </div>
-              <div className="flex justify-between font-medium text-base border-t border-border pt-2">
+              {appliedCoupon && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="flex justify-between text-green-600 font-medium"
+                >
+                  <span>Discount ({appliedCoupon.discount}%)</span>
+                  <span>−${discountAmount.toFixed(2)}</span>
+                </motion.div>
+              )}
+              <div className="flex justify-between font-semibold text-base border-t border-border pt-2">
                 <span>Total</span><span>${total.toFixed(2)}</span>
               </div>
             </div>

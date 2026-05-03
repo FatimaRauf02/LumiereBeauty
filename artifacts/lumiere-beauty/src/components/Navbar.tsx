@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, User, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, LayoutDashboard, Heart, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useCart } from "@/hooks/use-cart";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,8 +19,11 @@ export default function Navbar() {
   const [, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, clearAuth, isAuthenticated } = useAuth();
+  const { cart } = useCart();
   const logoutMutation = useLogout();
   const { toast } = useToast();
+
+  const cartCount = cart?.itemCount ?? 0;
 
   const handleLogout = async () => {
     try { await logoutMutation.mutateAsync(); } catch {}
@@ -57,9 +61,26 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <div className="hidden lg:flex items-center gap-4">
+              <div className="hidden lg:flex items-center gap-3">
+                {/* Wishlist */}
+                <Link href="/wishlist" title="Wishlist" className="p-1.5 text-muted-foreground hover:text-primary transition-colors relative">
+                  <Heart size={18} />
+                </Link>
+
+                {/* Cart */}
+                <Link href="/cart" title="Shopping Bag" className="p-1.5 text-muted-foreground hover:text-primary transition-colors relative">
+                  <ShoppingBag size={18} />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[9px] font-sans font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                      {cartCount > 9 ? "9+" : cartCount}
+                    </span>
+                  )}
+                </Link>
+
+                <div className="w-px h-4 bg-border" />
+
                 <Link href="/account" className="text-xs tracking-widest uppercase text-muted-foreground hover:text-primary transition-colors font-sans">
                   {user?.firstName}
                 </Link>
@@ -71,9 +92,19 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <Link href="/auth" className="hidden lg:block">
-                <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
-              </Link>
+              <div className="hidden lg:flex items-center gap-3">
+                <Link href="/cart" title="Shopping Bag" className="p-1.5 text-muted-foreground hover:text-primary transition-colors relative">
+                  <ShoppingBag size={18} />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[9px] font-sans font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                      {cartCount > 9 ? "9+" : cartCount}
+                    </span>
+                  )}
+                </Link>
+                <Link href="/auth">
+                  <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+                </Link>
+              </div>
             )}
 
             {user?.role === "admin" && (
@@ -111,13 +142,22 @@ export default function Navbar() {
                 {isAuthenticated ? (
                   <>
                     <Link href="/account" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-foreground">Account</Link>
+                    <Link href="/wishlist" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-muted-foreground">Wishlist</Link>
+                    <Link href="/cart" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-muted-foreground">
+                      Bag {cartCount > 0 && `(${cartCount})`}
+                    </Link>
                     {user?.role === "admin" && (
                       <Link href="/admin" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-primary">Admin Dashboard</Link>
                     )}
                     <button onClick={handleLogout} className="text-sm tracking-widest uppercase text-left text-muted-foreground">Sign Out</button>
                   </>
                 ) : (
-                  <Link href="/auth" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-foreground">Sign In</Link>
+                  <>
+                    <Link href="/cart" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-muted-foreground">
+                      Bag {cartCount > 0 && `(${cartCount})`}
+                    </Link>
+                    <Link href="/auth" onClick={() => setMobileOpen(false)} className="text-sm tracking-widest uppercase text-foreground">Sign In</Link>
+                  </>
                 )}
               </div>
             </nav>
