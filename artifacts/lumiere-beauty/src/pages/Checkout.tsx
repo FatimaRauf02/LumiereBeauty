@@ -22,7 +22,6 @@ interface ShippingForm {
   fullName: string;
   street: string;
   city: string;
-  state: string;
   zip: string;
   country: string;
 }
@@ -135,7 +134,7 @@ export default function Checkout() {
   const [couponLoading, setCouponLoading] = useState(false);
 
   const [form, setForm] = useState<ShippingForm>({
-    fullName: "", street: "", city: "", state: "", zip: "", country: "US",
+    fullName: "", street: "", city: "", zip: "", country: "US",
   });
 
   const update = (field: keyof ShippingForm, value: string) =>
@@ -275,17 +274,10 @@ export default function Checkout() {
                   <input required value={form.street} onChange={e => update("street", e.target.value)}
                     className="w-full bg-background border border-border px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans rounded-lg" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs tracking-widest uppercase font-sans block mb-2">City *</label>
-                    <input required value={form.city} onChange={e => update("city", e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="text-xs tracking-widest uppercase font-sans block mb-2">State *</label>
-                    <input required value={form.state} onChange={e => update("state", e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans rounded-lg" />
-                  </div>
+                <div>
+                  <label className="text-xs tracking-widest uppercase font-sans block mb-2">City *</label>
+                  <input required value={form.city} onChange={e => update("city", e.target.value)}
+                    className="w-full bg-background border border-border px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans rounded-lg" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -309,7 +301,7 @@ export default function Checkout() {
                 <div className="text-sm font-sans text-muted-foreground leading-relaxed">
                   <p className="font-medium text-foreground">{form.fullName}</p>
                   <p>{form.street}</p>
-                  <p>{form.city}, {form.state} {form.zip}</p>
+                  <p>{form.city} {form.zip}</p>
                   <p>{form.country}</p>
                 </div>
                 <button onClick={() => setShippingDone(false)}
