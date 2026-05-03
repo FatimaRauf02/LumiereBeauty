@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Sparkles, Leaf, Shield, Recycle } from "lucide-react";
+import { ArrowRight, Sparkles, Leaf, Shield, Recycle, Clock } from "lucide-react";
 import { useGetFeaturedProducts, useGetBestsellers, useGetNewArrivals } from "@workspace/api-client-react";
 import ProductCard from "@/components/ProductCard";
 import { useRef } from "react";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 
 function ProductSkeleton() {
   return (
@@ -56,6 +57,7 @@ export default function Home() {
   const { data: featured, isLoading: featLoading } = useGetFeaturedProducts();
   const { data: bestsellers, isLoading: bestLoading } = useGetBestsellers();
   const { data: newArrivals, isLoading: newLoading } = useGetNewArrivals();
+  const { items: recentlyViewed, clearRecentlyViewed } = useRecentlyViewed();
 
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -393,6 +395,48 @@ export default function Home() {
         </motion.div>
         <ProductGrid products={newArrivals ?? []} isLoading={newLoading} />
       </section>
+
+      {/* ─── RECENTLY VIEWED ─── */}
+      {recentlyViewed.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 lg:px-8 py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex items-end justify-between mb-12"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                <Clock size={15} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-[11px] tracking-[0.35em] uppercase text-primary mb-1 font-sans">Your History</p>
+                <h2 className="font-serif text-4xl font-light text-foreground">Recently Viewed</h2>
+              </div>
+            </div>
+            <button
+              onClick={clearRecentlyViewed}
+              className="hidden md:block text-xs tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors font-sans"
+            >
+              Clear
+            </button>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {recentlyViewed.slice(0, 8).map((p, i) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07, duration: 0.5 }}
+              >
+                <ProductCard product={p} />
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ─── FINAL CTA STRIP ─── */}
       <section className="bg-primary py-16 text-center">

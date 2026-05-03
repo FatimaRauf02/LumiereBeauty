@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Star, ShoppingBag, Heart, Minus, Plus, ChevronDown } from "lucide-react";
@@ -8,6 +8,7 @@ import {
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import ProductCard from "@/components/ProductCard";
 
 export default function ProductDetail() {
@@ -23,8 +24,14 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { addRecentlyViewed } = useRecentlyViewed();
 
   const { data: product, isLoading } = useGetProductBySlug(slug!);
+
+  useEffect(() => {
+    if (product) addRecentlyViewed(product as any);
+  }, [product?.id]);
+
   const { data: related } = useGetRelatedProducts(String(product?.id ?? ""), { query: { enabled: !!product?.id } });
   const { data: reviews, refetch: refetchReviews } = useGetReviews(String(product?.id ?? ""), { query: { enabled: !!product?.id } });
   const createReviewMutation = useCreateReview();
