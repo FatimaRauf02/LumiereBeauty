@@ -71,29 +71,6 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left decorative panel — sign in only */}
-      {mode === "login" && (
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1570194065650-d99fb4ee0e7e?w=900&q=90&fit=crop&auto=format"
-            alt="Luxury beauty products"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-background/30 to-accent/25" />
-          <div className="relative flex flex-col justify-end p-16">
-            <div className="backdrop-blur-sm bg-white/15 rounded-2xl p-8 border border-white/20">
-              <p className="text-[10px] tracking-[0.4em] uppercase text-white/70 font-sans mb-3">Lumière Beauty</p>
-              <h2 className="font-serif text-4xl font-light text-white leading-tight mb-4">
-                Your beauty<br />journey starts<br /><em className="text-accent">here.</em>
-              </h2>
-              <p className="text-white/80 font-sans font-light text-sm leading-relaxed">
-                Join thousands discovering their perfect skincare routine with Lumière Beauty.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Form panel */}
       <div className="flex-1 flex items-center justify-center px-6 py-16 bg-background">
         <div className="w-full max-w-md">
@@ -251,11 +228,6 @@ export default function Auth() {
                   </button>
                 </p>
 
-                {mode === "login" && (
-                  <p className="text-center text-[11px] text-muted-foreground font-sans">
-                    Admin: admin@lumierebeauty.com
-                  </p>
-                )}
               </motion.form>
             )}
           </AnimatePresence>
