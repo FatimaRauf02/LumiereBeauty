@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Star, ShoppingBag, Heart } from "lucide-react";
+import { Star, ShoppingBag, Heart, BarChart2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
+import { useCompare } from "@/hooks/use-compare";
 import { useAddToWishlist, useRemoveFromWishlist, getGetWishlistQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@workspace/api-client-react";
@@ -117,6 +118,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const removeWishlistMutation = useRemoveFromWishlist();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { addToCompare, removeFromCompare, isInCompare, isFull } = useCompare();
 
   const wishlistData = queryClient.getQueryData<Product[]>(getGetWishlistQueryKey());
   const isInWishlist = wishlistData?.some((p) => p.id === product.id) ?? false;
@@ -214,6 +216,26 @@ export default function ProductCard({ product }: ProductCardProps) {
               }`}
             >
               <Heart size={13} className={isInWishlist ? "fill-primary" : ""} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                if (isInCompare(product.id)) {
+                  removeFromCompare(product.id);
+                } else if (!isFull) {
+                  addToCompare(product);
+                }
+              }}
+              title={isInCompare(product.id) ? "Remove from compare" : isFull ? "Compare list full" : "Add to compare"}
+              className={`backdrop-blur-sm border border-border p-3 transition-colors ${
+                isInCompare(product.id)
+                  ? "bg-primary/10 text-primary"
+                  : isFull
+                  ? "bg-white/90 text-muted-foreground/40 cursor-not-allowed"
+                  : "bg-white/90 hover:text-primary"
+              }`}
+            >
+              <BarChart2 size={13} />
             </button>
           </div>
         </div>
