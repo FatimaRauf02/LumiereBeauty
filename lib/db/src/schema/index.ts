@@ -6,3 +6,4 @@ export * from "./cart";
 export * from "./reviews";
 export * from "./quiz";
 export * from "./wishlist";
+export * from "./loyalty";

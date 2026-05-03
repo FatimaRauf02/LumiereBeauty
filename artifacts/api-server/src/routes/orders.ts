@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { ordersTable, cartItemsTable, productsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { authenticate, type AuthRequest } from "../middlewares/authenticate";
+import { awardLoyaltyPoints } from "./loyalty";
 
 const router = Router();
 
@@ -75,6 +76,13 @@ router.post("/orders", authenticate, async (req: AuthRequest, res) => {
     }).returning();
 
     await db.delete(cartItemsTable).where(eq(cartItemsTable.userId, userId));
+
+    // Award loyalty points: 1 point per $1 of order total
+    try {
+      await awardLoyaltyPoints(userId, total);
+    } catch (loyaltyErr) {
+      req.log.warn(loyaltyErr, "Failed to award loyalty points — order still created");
+    }
 
     res.status(201).json(formatOrder(order));
   } catch (err) {
