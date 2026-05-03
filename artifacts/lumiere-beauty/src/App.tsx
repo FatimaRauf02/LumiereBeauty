@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 import WelcomeCouponBanner from "@/components/WelcomeCouponBanner";
+import CompareBar from "@/components/CompareBar";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
@@ -19,6 +20,7 @@ import Account from "@/pages/Account";
 import Wishlist from "@/pages/Wishlist";
 import Admin from "@/pages/Admin";
 import OrderTracking from "@/pages/OrderTracking";
+import Compare from "@/pages/Compare";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -47,12 +49,14 @@ function AppLayout() {
           <Route path="/wishlist" component={Wishlist} />
           <Route path="/admin" component={Admin} />
           <Route path="/orders/:id" component={OrderTracking} />
+          <Route path="/compare" component={Compare} />
           <Route component={NotFound} />
         </Switch>
       </main>
       <Footer />
       <ChatWidget />
       <WelcomeCouponBanner />
+      <CompareBar />
     </div>
   );
 }
