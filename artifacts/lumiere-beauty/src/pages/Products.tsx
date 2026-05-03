@@ -5,6 +5,29 @@ import { SlidersHorizontal, X } from "lucide-react";
 import { useGetProducts, useGetCategories } from "@workspace/api-client-react";
 import ProductCard from "@/components/ProductCard";
 
+const CATEGORY_BANNERS: Record<string, { image: string; headline: string; sub: string }> = {
+  "Hair Care": {
+    image: "/haircare-banner.jpg",
+    headline: "Haircare Rituals",
+    sub: "Nourish, strengthen and transform every strand.",
+  },
+  "Skincare": {
+    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1400&q=85&fit=crop&auto=format",
+    headline: "Luxury Skincare",
+    sub: "Science-backed formulas for your most luminous skin.",
+  },
+  "Body Care": {
+    image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=1400&q=85&fit=crop&auto=format",
+    headline: "Body Rituals",
+    sub: "Indulge in head-to-toe luxury every day.",
+  },
+  "Sets & Bundles": {
+    image: "https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?w=1400&q=85&fit=crop&auto=format",
+    headline: "Curated Sets",
+    sub: "Complete routines, beautifully bundled.",
+  },
+};
+
 const SORT_OPTIONS = [
   { value: "", label: "Featured" },
   { value: "bestSelling", label: "Best Selling" },
@@ -142,8 +165,34 @@ export default function Products() {
     </div>
   );
 
+  const banner = category ? CATEGORY_BANNERS[category] : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+
+      {/* Category banner */}
+      {banner && (
+        <motion.div
+          key={category}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="relative w-full h-48 sm:h-64 rounded-2xl overflow-hidden mb-10 shadow-md"
+        >
+          <img
+            src={banner.image}
+            alt={category}
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-end p-8">
+            <p className="text-[10px] tracking-[0.35em] uppercase text-white/70 font-sans mb-1.5">{category}</p>
+            <h2 className="font-serif text-3xl sm:text-4xl font-light text-white leading-tight mb-1">{banner.headline}</h2>
+            <p className="text-white/80 text-sm font-sans font-light">{banner.sub}</p>
+          </div>
+        </motion.div>
+      )}
+
       <div className="mb-10">
         <p className="text-xs tracking-[0.3em] uppercase text-primary mb-2 font-sans">
           {category || "All Products"}
