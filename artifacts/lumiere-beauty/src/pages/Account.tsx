@@ -32,11 +32,16 @@ function OrdersTab() {
                 {new Date(order.createdAt as string).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
-            <span className={`text-xs tracking-widest uppercase font-sans px-2 py-1 ${
-              order.status === "delivered" ? "bg-green-900/30 text-green-400" :
-              order.status === "cancelled" ? "bg-red-900/30 text-red-400" :
-              "bg-primary/20 text-primary"
-            }`}>{order.status}</span>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs tracking-widest uppercase font-sans px-2 py-1 ${
+                order.status === "delivered" ? "bg-green-900/30 text-green-400" :
+                order.status === "cancelled" ? "bg-red-900/30 text-red-400" :
+                "bg-primary/20 text-primary"
+              }`}>{order.status}</span>
+              <Link href={`/orders/${order.id}`} className="text-xs tracking-widest uppercase text-primary hover:opacity-75 transition-opacity font-sans whitespace-nowrap">
+                Track →
+              </Link>
+            </div>
           </div>
           <div className="space-y-2">
             {(order.items as any[]).map((item: any) => (

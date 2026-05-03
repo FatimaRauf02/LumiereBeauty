@@ -172,11 +172,14 @@ export default function Checkout() {
             <span>${completed.total?.toFixed(2)}</span>
           </div>
         </div>
-        <div className="flex gap-4 justify-center">
-          <Link href="/account" className="bg-primary text-primary-foreground px-8 py-3 text-xs tracking-widest uppercase hover:opacity-90 font-sans">
-            View Orders
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href={`/orders/${completed.id}`} className="bg-primary text-primary-foreground px-8 py-3 text-xs tracking-widest uppercase hover:opacity-90 font-sans text-center">
+            Track Order
           </Link>
-          <Link href="/products" className="border border-border px-8 py-3 text-xs tracking-widest uppercase hover:bg-secondary font-sans transition-colors">
+          <Link href="/account" className="border border-border px-8 py-3 text-xs tracking-widest uppercase hover:bg-secondary font-sans transition-colors text-center">
+            My Account
+          </Link>
+          <Link href="/products" className="border border-border px-8 py-3 text-xs tracking-widest uppercase hover:bg-secondary font-sans transition-colors text-center">
             Continue Shopping
           </Link>
         </div>

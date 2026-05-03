@@ -18,6 +18,7 @@ import Auth from "@/pages/Auth";
 import Account from "@/pages/Account";
 import Wishlist from "@/pages/Wishlist";
 import Admin from "@/pages/Admin";
+import OrderTracking from "@/pages/OrderTracking";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ function AppLayout() {
           <Route path="/account" component={Account} />
           <Route path="/wishlist" component={Wishlist} />
           <Route path="/admin" component={Admin} />
+          <Route path="/orders/:id" component={OrderTracking} />
           <Route component={NotFound} />
         </Switch>
       </main>
