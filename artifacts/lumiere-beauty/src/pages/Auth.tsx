@@ -70,48 +70,30 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left decorative panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img
-          src={mode === "register"
-            ? "/create-account-banner.jpg"
-            : "https://images.unsplash.com/photo-1570194065650-d99fb4ee0e7e?w=900&q=90&fit=crop&auto=format"
-          }
-          alt="Luxury beauty products"
-          className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
-        />
-        <div className={`absolute inset-0 transition-all duration-700 ${
-          mode === "register"
-            ? "bg-gradient-to-br from-rose-900/50 via-primary/30 to-accent/30"
-            : "bg-gradient-to-br from-primary/40 via-background/30 to-accent/25"
-        }`} />
-        <div className="relative flex flex-col justify-end p-16">
-          <div className="backdrop-blur-sm bg-white/15 rounded-2xl p-8 border border-white/20">
-            <p className="text-[10px] tracking-[0.4em] uppercase text-white/70 font-sans mb-3">Lumière Beauty</p>
-            {mode === "register" ? (
-              <>
-                <h2 className="font-serif text-4xl font-light text-white leading-tight mb-4">
-                  Reveal your<br />most radiant<br /><em className="text-accent">self.</em>
-                </h2>
-                <p className="text-white/80 font-sans font-light text-sm leading-relaxed">
-                  Join our community and unlock personalised skincare routines, exclusive offers, and expert beauty tips.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="font-serif text-4xl font-light text-white leading-tight mb-4">
-                  Your beauty<br />journey starts<br /><em className="text-accent">here.</em>
-                </h2>
-                <p className="text-white/80 font-sans font-light text-sm leading-relaxed">
-                  Join thousands discovering their perfect skincare routine with Lumière Beauty.
-                </p>
-              </>
-            )}
+      {/* Left decorative panel — sign in only */}
+      {mode === "login" && (
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1570194065650-d99fb4ee0e7e?w=900&q=90&fit=crop&auto=format"
+            alt="Luxury beauty products"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-background/30 to-accent/25" />
+          <div className="relative flex flex-col justify-end p-16">
+            <div className="backdrop-blur-sm bg-white/15 rounded-2xl p-8 border border-white/20">
+              <p className="text-[10px] tracking-[0.4em] uppercase text-white/70 font-sans mb-3">Lumière Beauty</p>
+              <h2 className="font-serif text-4xl font-light text-white leading-tight mb-4">
+                Your beauty<br />journey starts<br /><em className="text-accent">here.</em>
+              </h2>
+              <p className="text-white/80 font-sans font-light text-sm leading-relaxed">
+                Join thousands discovering their perfect skincare routine with Lumière Beauty.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Right form panel */}
+      {/* Form panel */}
       <div className="flex-1 flex items-center justify-center px-6 py-16 bg-background">
         <div className="w-full max-w-md">
           <div className="mb-10">
