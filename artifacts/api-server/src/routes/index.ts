@@ -14,6 +14,8 @@ import newsletterRouter from "./newsletter";
 import couponsRouter from "./coupons";
 import restockNotifyRouter from "./restockNotify";
 import paymentsRouter from "./payments";
+import transcribeRouter from "./transcribe";
+import loyaltyRouter from "./loyalty";
 
 const router: IRouter = Router();
 
@@ -32,5 +34,7 @@ router.use(newsletterRouter);
 router.use(couponsRouter);
 router.use(restockNotifyRouter);
 router.use(paymentsRouter);
+router.use(transcribeRouter);
+router.use(loyaltyRouter);
 
 export default router;

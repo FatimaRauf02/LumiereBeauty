@@ -37,23 +37,25 @@ A complete luxury skincare/beauty ecommerce platform built on a pnpm monorepo. D
 
 ## Database Schema (lib/db)
 
-Tables: `users`, `products`, `categories`, `addresses`, `orders`, `order_items`, `cart_items`, `reviews`, `quiz_results`, `wishlist`
+Tables: `users`, `products`, `categories`, `addresses`, `orders`, `order_items`, `cart_items`, `reviews`, `quiz_results`, `wishlist`, `loyalty_points`
 
 - 40 products seeded across 4 categories (Skincare, Hair Care, Body Care, Sets & Bundles)
 - Admin user: `admin@lumierebeauty.com` / `admin123`
+- Loyalty points: 1 point per $1 spent, auto-awarded on order creation
 
 ## Frontend Pages
 
 | Route | Page | Notes |
 |---|---|---|
 | `/` | Home | Hero, featured, bestsellers, new arrivals, values |
-| `/products` | Products | Sidebar filters: category, skin type, search, sort |
+| `/products` | Products | Sidebar filters, animated category banners |
 | `/products/:slug` | ProductDetail | Images, accordion, reviews, related products |
 | `/quiz` | Quiz | 5-step skin quiz, AI recommendations via Claude |
-| `/cart` | Cart | Line items, quantity edit, order summary |
-| `/checkout` | Checkout | Shipping form, demo payment, order confirmation |
-| `/auth` | Auth | Sign in / Create Account split layout |
-| `/account` | Account | Orders, Profile, Addresses, Wishlist tabs |
+| `/cart` | Cart | Line items, quantity edit, order summary, coupon codes |
+| `/checkout` | Checkout | Shipping form, Stripe payment, coupon section |
+| `/auth` | Auth | Sign in / Create Account with distinct panel images |
+| `/account` | Account | Orders, Profile, Addresses, Wishlist, Rewards tabs |
+| `/orders/:id` | OrderTracking | Animated 4-step timeline |
 | `/admin` | Admin | Dashboard with charts, products, orders, customers, reviews |
 
 ## Auth Flow
@@ -73,9 +75,18 @@ Tables: `users`, `products`, `categories`, `addresses`, `orders`, `order_items`,
 
 ## AI Integration
 
-- `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` + `AI_INTEGRATIONS_ANTHROPIC_API_KEY` env vars (set via Replit AI Integrations)
-- Chat widget: floating bubble → real-time beauty advisor conversation
+- **Anthropic**: `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` + `AI_INTEGRATIONS_ANTHROPIC_API_KEY` — Chat widget + quiz
+- **OpenAI**: `AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY` — Voice transcription (`gpt-4o-mini-transcribe`)
+- Chat widget: MediaRecorder → POST `/api/transcribe` → OpenAI STT → sends as text → Claude replies → Web Speech TTS
 - Quiz: submits 5 answers → Claude generates personalized product recommendations with reasoning
+
+## Loyalty Points
+
+- Table: `loyalty_points` (userId, points, totalEarned, totalRedeemed)
+- 1 point awarded per $1 of order total, on every order creation
+- 100 points = $5 discount value (redeemable via `POST /api/loyalty/redeem`)
+- Tiers: Silver (0–499), Gold (500–1499), Platinum (1500+)
+- Account page "Rewards" tab shows balance, tier progress, stats
 
 ## Notes
 

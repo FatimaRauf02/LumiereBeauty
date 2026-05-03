@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Package, User, MapPin, Heart } from "lucide-react";
+import { Package, User, MapPin, Heart, Star, Gift, TrendingUp } from "lucide-react";
 import {
   useGetProfile, useGetOrders, useGetAddresses, useGetWishlist,
   useUpdateProfile, useAddAddress, useRemoveFromWishlist, useLogout
@@ -9,12 +9,14 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import ProductCard from "@/components/ProductCard";
+import { useQuery } from "@tanstack/react-query";
 
 const TABS = [
   { key: "orders", label: "Orders", icon: Package },
   { key: "profile", label: "Profile", icon: User },
   { key: "addresses", label: "Addresses", icon: MapPin },
   { key: "wishlist", label: "Wishlist", icon: Heart },
+  { key: "loyalty", label: "Rewards", icon: Star },
 ];
 
 function OrdersTab() {
@@ -199,6 +201,111 @@ function AddressesTab() {
   );
 }
 
+function LoyaltyTab() {
+  const { data, isLoading } = useQuery<{ points: number; totalEarned: number; totalRedeemed: number; discountValue: number }>({
+    queryKey: ["loyalty"],
+    queryFn: async () => {
+      const token = localStorage.getItem("lumiere_access_token");
+      const res = await fetch("/api/loyalty", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to fetch loyalty");
+      return res.json();
+    },
+  });
+
+  const points = data?.points ?? 0;
+  const totalEarned = data?.totalEarned ?? 0;
+  const totalRedeemed = data?.totalRedeemed ?? 0;
+  const discountValue = data?.discountValue ?? 0;
+
+  const TIER_THRESHOLDS = [
+    { name: "Silver", min: 0, max: 500, color: "text-slate-400", bg: "bg-slate-100" },
+    { name: "Gold", min: 500, max: 1500, color: "text-amber-500", bg: "bg-amber-50" },
+    { name: "Platinum", min: 1500, max: Infinity, color: "text-purple-500", bg: "bg-purple-50" },
+  ];
+  const tier = TIER_THRESHOLDS.find(t => totalEarned >= t.min && totalEarned < t.max) ?? TIER_THRESHOLDS[0];
+  const nextTier = TIER_THRESHOLDS[TIER_THRESHOLDS.indexOf(tier) + 1];
+  const progressPct = nextTier
+    ? Math.min(100, Math.round(((totalEarned - tier.min) / (nextTier.min - tier.min)) * 100))
+    : 100;
+
+  if (isLoading) return <div className="animate-pulse space-y-4">{[1,2,3].map(i => <div key={i} className="h-20 bg-card rounded-xl" />)}</div>;
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      {/* Points hero */}
+      <div className="bg-gradient-to-br from-primary/10 via-accent/10 to-background border border-primary/20 rounded-2xl p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-xs tracking-[0.3em] uppercase text-primary font-sans mb-1">Your Balance</p>
+            <p className="font-serif text-5xl font-light text-foreground">{points.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground font-sans mt-1">points</p>
+          </div>
+          <div className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium tracking-widest uppercase ${tier.bg} ${tier.color}`}>
+            {tier.name}
+          </div>
+        </div>
+        {discountValue > 0 && (
+          <div className="flex items-center gap-2 bg-white/70 rounded-xl px-4 py-2.5 border border-primary/10">
+            <Gift size={14} className="text-primary flex-shrink-0" />
+            <p className="text-sm font-sans text-foreground">Worth <span className="font-semibold text-primary">${discountValue.toFixed(2)}</span> in discounts</p>
+          </div>
+        )}
+      </div>
+
+      {/* Tier progress */}
+      {nextTier && (
+        <div className="bg-card border border-card-border rounded-xl p-5">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs tracking-widest uppercase font-sans text-muted-foreground">Progress to {nextTier.name}</p>
+            <p className="text-xs font-sans text-muted-foreground">{totalEarned} / {nextTier.min} pts</p>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+            />
+          </div>
+          <p className="text-xs font-sans text-muted-foreground mt-2">{nextTier.min - totalEarned} more points to reach {nextTier.name}</p>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        {[
+          { label: "Total Earned", value: totalEarned.toLocaleString(), icon: TrendingUp },
+          { label: "Total Redeemed", value: totalRedeemed.toLocaleString(), icon: Gift },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="bg-card border border-card-border rounded-xl p-4">
+            <Icon size={16} className="text-primary mb-2" />
+            <p className="font-serif text-2xl font-light">{value}</p>
+            <p className="text-xs tracking-widest uppercase text-muted-foreground font-sans mt-1">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* How it works */}
+      <div className="bg-card border border-card-border rounded-xl p-5">
+        <p className="text-xs tracking-widest uppercase font-sans text-muted-foreground mb-4">How It Works</p>
+        <div className="space-y-3 text-sm font-sans text-foreground">
+          {[
+            "Earn 1 point for every $1 you spend",
+            "100 points = $5 discount at checkout",
+            "Reach Gold (500 pts) for early access to sales",
+            "Reach Platinum (1500 pts) for free shipping on every order",
+          ].map((rule, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-medium flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+              <span className="text-muted-foreground">{rule}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WishlistTab() {
   const { data: wishlist, isLoading, refetch } = useGetWishlist();
   const removeMutation = useRemoveFromWishlist();
@@ -280,6 +387,7 @@ export default function Account() {
             {activeTab === "profile" && <ProfileTab />}
             {activeTab === "addresses" && <AddressesTab />}
             {activeTab === "wishlist" && <WishlistTab />}
+            {activeTab === "loyalty" && <LoyaltyTab />}
           </motion.div>
         </div>
       </div>

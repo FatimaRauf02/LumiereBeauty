@@ -1,19 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Mic, Volume2, VolumeX } from "lucide-react";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Square } from "lucide-react";
 import { useSendChatMessage } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
 }
 
 export default function ChatWidget() {
@@ -25,21 +18,25 @@ export default function ChatWidget() {
     },
   ]);
   const [input, setInput] = useState("");
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [bars, setBars] = useState<number[]>([4, 4, 4, 4, 4]);
+  const [recordSeconds, setRecordSeconds] = useState(0);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatMutation = useSendChatMessage();
   const { toast } = useToast();
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const animRef = useRef<number | null>(null);
-  const isListeningRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const isPendingRef = useRef(false);
   const messagesRef = useRef(messages);
-  // Keep a stable ref to latest sendMessage to avoid stale closures in rec.onend
   const sendMessageRef = useRef<(text: string) => void>(() => {});
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -47,31 +44,51 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (open) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-  }, [messages, open, isListening]);
+  }, [messages, open, isRecording, isTranscribing]);
 
-  // ─── Bar animation ─────────────────────────────────────────────────────────
-  const startBarAnim = useCallback(() => {
-    let t = 0;
-    const tick = () => {
-      t += 0.18;
-      setBars([
-        Math.round(4 + Math.abs(Math.sin(t + 0.0)) * 22),
-        Math.round(4 + Math.abs(Math.sin(t + 0.7)) * 18),
-        Math.round(4 + Math.abs(Math.sin(t + 1.4)) * 26),
-        Math.round(4 + Math.abs(Math.sin(t + 2.1)) * 18),
-        Math.round(4 + Math.abs(Math.sin(t + 2.8)) * 22),
-      ]);
-      animRef.current = requestAnimationFrame(tick);
-    };
-    tick();
+  // ─── Real audio bar animation via AnalyserNode ───────────────────────────
+  const startBarAnim = useCallback((stream: MediaStream) => {
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const slice = [data[2], data[4], data[6], data[4], data[2]] as number[];
+        setBars(slice.map(v => Math.max(4, Math.round(v / 5))));
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {
+      // fallback: sine animation
+      let t = 0;
+      const tick = () => {
+        t += 0.18;
+        setBars([
+          Math.round(4 + Math.abs(Math.sin(t + 0.0)) * 22),
+          Math.round(4 + Math.abs(Math.sin(t + 0.7)) * 18),
+          Math.round(4 + Math.abs(Math.sin(t + 1.4)) * 26),
+          Math.round(4 + Math.abs(Math.sin(t + 2.1)) * 18),
+          Math.round(4 + Math.abs(Math.sin(t + 2.8)) * 22),
+        ]);
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    }
   }, []);
 
   const stopBarAnim = useCallback(() => {
     if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+    analyserRef.current = null;
     setBars([4, 4, 4, 4, 4]);
   }, []);
 
-  // ─── Text-to-Speech ─────────────────────────────────────────────────────────
+  // ─── Text-to-Speech ──────────────────────────────────────────────────────
   const speak = useCallback((text: string) => {
     if (!voiceEnabled || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -90,15 +107,13 @@ export default function ChatWidget() {
       utt.rate = 0.92;
       utt.pitch = 1.1;
       utt.volume = 1;
-
       const voices = window.speechSynthesis.getVoices();
       const pick = voices.find(v =>
         v.name === "Samantha" || v.name === "Karen" || v.name === "Victoria" ||
-        v.name === "Moira" || v.name.includes("Google UK English Female") ||
+        v.name.includes("Google UK English Female") ||
         v.name.includes("Microsoft Zira") || v.name.includes("Microsoft Jenny") ||
         (v.lang.startsWith("en") && v.name.toLowerCase().includes("female"))
       ) ?? voices.find(v => v.lang.startsWith("en"));
-
       if (pick) utt.voice = pick;
       utt.onstart = () => setIsSpeaking(true);
       utt.onend = () => setIsSpeaking(false);
@@ -118,16 +133,14 @@ export default function ChatWidget() {
     setIsSpeaking(false);
   }, []);
 
-  // ─── Send message to AI ─────────────────────────────────────────────────────
+  // ─── Send message to AI ──────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    // Use ref to get real-time pending state (avoids stale closure)
     if (isPendingRef.current) {
       toast({ title: "Please wait", description: "Still thinking about your last question..." });
       return;
     }
-
     const userMsg: Message = { role: "user", content: trimmed };
     const history = messagesRef.current;
     setMessages(prev => [...prev, userMsg]);
@@ -150,113 +163,136 @@ export default function ChatWidget() {
     }
   }, [chatMutation, speak, toast]);
 
-  // Keep ref in sync with latest version (so rec.onend always calls current sendMessage)
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
 
-  // ─── Stop listening ──────────────────────────────────────────────────────────
-  const stopListening = useCallback(() => {
-    isListeningRef.current = false;
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setIsListening(false);
+  // ─── Stop recording ──────────────────────────────────────────────────────
+  const stopRecording = useCallback(() => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     stopBarAnim();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordSeconds(0);
   }, [stopBarAnim]);
 
-  // ─── Start listening ─────────────────────────────────────────────────────────
-  const startListening = useCallback(() => {
-    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!SR) {
-      toast({
-        title: "Browser not supported",
-        description: "Voice input works in Chrome or Edge. Please type your question instead.",
-      });
-      return;
-    }
-
+  // ─── Start recording ─────────────────────────────────────────────────────
+  const startRecording = useCallback(async () => {
     if (isSpeaking) stopSpeaking();
-    if (recognitionRef.current) { recognitionRef.current.abort(); recognitionRef.current = null; }
-
-    const rec = new SR();
-    rec.lang = "en-US";
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-    rec.continuous = false;
-
-    let finalTranscript = "";
-
-    rec.onstart = () => {
-      isListeningRef.current = true;
-      setIsListening(true);
-      setInput("");
-      finalTranscript = "";
-      startBarAnim();
-    };
-
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript;
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-      setInput(finalTranscript + interim);
-    };
-
-    rec.onerror = (e: SpeechRecognitionErrorEvent) => {
-      isListeningRef.current = false;
-      setIsListening(false);
-      stopBarAnim();
-      recognitionRef.current = null;
-
-      const errorMessages: Record<string, string> = {
-        "not-allowed": "Microphone access denied. Please allow microphone in your browser settings, then try again.",
-        "no-speech": "No speech detected. Please tap the mic and speak clearly.",
-        "audio-capture": "No microphone found. Please connect a mic or type your question.",
-        "network": "Network issue with speech service. Please type your question instead.",
-        "aborted": "",
-        "service-not-allowed": "Speech recognition is not allowed here. Please type your question.",
-      };
-
-      const msg = errorMessages[e.error];
-      if (msg) {
-        toast({ title: "Voice input issue", description: msg });
-      }
-    };
-
-    rec.onend = () => {
-      isListeningRef.current = false;
-      setIsListening(false);
-      stopBarAnim();
-      recognitionRef.current = null;
-
-      const captured = finalTranscript.trim();
-      if (captured) {
-        setInput(captured);
-        // Use ref so we always call the latest sendMessage (never stale)
-        setTimeout(() => sendMessageRef.current(captured), 350);
-      }
-    };
-
-    recognitionRef.current = rec;
 
     try {
-      rec.start();
-    } catch {
-      toast({ title: "Could not start microphone", description: "Please try again or type your question." });
-      setIsListening(false);
-      stopBarAnim();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorderRef.current = rec;
+      audioChunksRef.current = [];
+
+      rec.ondataavailable = e => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      rec.onstop = async () => {
+        const finalMime = mimeType || "audio/webm";
+        const blob = new Blob(audioChunksRef.current, { type: finalMime });
+
+        if (blob.size < 1000) {
+          toast({ title: "No audio captured", description: "Please hold the mic button and speak clearly." });
+          return;
+        }
+
+        setIsTranscribing(true);
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(",")[1] ?? "");
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          const response = await fetch("/api/transcribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: base64, mimeType: finalMime }),
+          });
+
+          if (!response.ok) throw new Error("Transcription request failed");
+          const { transcript } = await response.json() as { transcript: string };
+
+          if (transcript?.trim()) {
+            setInput(transcript.trim());
+            setTimeout(() => sendMessageRef.current(transcript.trim()), 200);
+          } else {
+            toast({ title: "Couldn't hear you", description: "Please try speaking again." });
+          }
+        } catch {
+          toast({ title: "Transcription failed", description: "Please type your message instead." });
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      rec.start(250);
+      setIsRecording(true);
+      setRecordSeconds(0);
+      startBarAnim(stream);
+
+      // Auto-stop after 30s
+      timerRef.current = setInterval(() => {
+        setRecordSeconds(s => {
+          if (s >= 29) {
+            stopRecording();
+            return 0;
+          }
+          return s + 1;
+        });
+      }, 1000);
+
+    } catch (err: any) {
+      const msg = err?.name === "NotAllowedError"
+        ? "Microphone access denied. Please allow microphone in your browser settings."
+        : err?.name === "NotFoundError"
+        ? "No microphone found. Please connect a mic or type your question."
+        : "Could not access microphone. Please type your question.";
+      toast({ title: "Microphone error", description: msg });
     }
-  }, [isSpeaking, stopSpeaking, startBarAnim, stopBarAnim, toast]);
+  }, [isSpeaking, stopSpeaking, startBarAnim, stopRecording, toast]);
 
-  const hasSpeech = typeof window !== "undefined" &&
-    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
 
-  const statusText = isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Beauty Advisor";
+  const statusText = isRecording
+    ? `Listening… ${recordSeconds}s`
+    : isTranscribing
+    ? "Transcribing…"
+    : isSpeaking
+    ? "Speaking…"
+    : "Beauty Advisor";
+
+  const hasMediaDevices = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col items-end gap-3">
       <AnimatePresence>
         {open && (
           <motion.div
@@ -264,8 +300,11 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.94 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="w-[350px] bg-white border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden"
-            style={{ height: 520 }}
+            className="bg-white border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden"
+            style={{
+              width: "min(380px, calc(100vw - 24px))",
+              height: "min(560px, calc(100dvh - 110px))",
+            }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-primary to-accent px-4 py-3.5 flex items-center justify-between flex-shrink-0">
@@ -274,7 +313,12 @@ export default function ChatWidget() {
                 <div>
                   <p className="font-serif text-white text-base leading-tight">Lumiere</p>
                   <div className="flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isListening ? "bg-red-300 animate-ping" : isSpeaking ? "bg-blue-300 animate-pulse" : "bg-green-300"}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      isRecording ? "bg-red-300 animate-ping" :
+                      isTranscribing ? "bg-yellow-300 animate-pulse" :
+                      isSpeaking ? "bg-blue-300 animate-pulse" :
+                      "bg-green-300"
+                    }`} />
                     <p className="text-white/85 text-[10px] font-sans tracking-wide">{statusText}</p>
                   </div>
                 </div>
@@ -288,7 +332,11 @@ export default function ChatWidget() {
                   {voiceEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
                 </button>
                 <button
-                  onClick={() => { setOpen(false); if (isListening) stopListening(); if (isSpeaking) stopSpeaking(); }}
+                  onClick={() => {
+                    setOpen(false);
+                    if (isRecording) stopRecording();
+                    if (isSpeaking) stopSpeaking();
+                  }}
                   className="text-white/80 hover:text-white transition-colors p-1"
                 >
                   <X size={15} />
@@ -336,25 +384,38 @@ export default function ChatWidget() {
 
             {/* Voice visualizer */}
             <AnimatePresence>
-              {isListening && (
+              {(isRecording || isTranscribing) && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 52, opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="flex-shrink-0 bg-primary/5 border-t border-primary/10 flex items-center justify-center gap-1.5 px-5 overflow-hidden"
                 >
-                  <div className="flex items-end gap-1 h-8 flex-1">
-                    {bars.map((h, i) => (
+                  {isTranscribing ? (
+                    <div className="flex items-center gap-2">
                       <motion.div
-                        key={i}
-                        animate={{ height: h }}
-                        transition={{ duration: 0.07 }}
-                        className="flex-1 bg-primary rounded-sm"
-                        style={{ minHeight: 3 }}
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full"
                       />
-                    ))}
-                  </div>
-                  <p className="text-primary text-xs font-sans ml-3 flex-shrink-0 animate-pulse">Speak now…</p>
+                      <p className="text-primary text-xs font-sans">Transcribing your voice…</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-end gap-1 h-8 flex-1">
+                        {bars.map((h, i) => (
+                          <motion.div
+                            key={i}
+                            animate={{ height: h }}
+                            transition={{ duration: 0.07 }}
+                            className="flex-1 bg-primary rounded-sm"
+                            style={{ minHeight: 3 }}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-primary text-xs font-sans ml-3 flex-shrink-0">Speak now…</p>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -363,45 +424,50 @@ export default function ChatWidget() {
             <div className="border-t border-border p-3 bg-white flex gap-2 items-end flex-shrink-0">
               <textarea
                 value={input}
-                onChange={e => { if (!isListening) setInput(e.target.value); }}
+                onChange={e => { if (!isRecording) setInput(e.target.value); }}
                 onKeyDown={e => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    if (!isListening && input.trim()) sendMessage(input);
+                    if (!isRecording && input.trim()) sendMessage(input);
                   }
                 }}
-                placeholder={isListening ? "Speak now… I'm listening" : "Type or tap the mic…"}
+                placeholder={
+                  isRecording ? "Listening… tap stop when done" :
+                  isTranscribing ? "Transcribing…" :
+                  "Type or tap the mic…"
+                }
                 rows={1}
-                readOnly={isListening}
+                readOnly={isRecording || isTranscribing}
                 className="flex-1 bg-muted border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans resize-none leading-relaxed"
                 style={{ minHeight: 40, maxHeight: 100 }}
               />
 
-              {hasSpeech && (
+              {hasMediaDevices && (
                 <motion.button
                   whileTap={{ scale: 0.88 }}
-                  onClick={isListening ? stopListening : startListening}
-                  className={`relative p-2.5 rounded-xl transition-all flex-shrink-0 ${
-                    isListening
+                  onClick={toggleRecording}
+                  disabled={isTranscribing}
+                  className={`relative p-2.5 rounded-xl transition-all flex-shrink-0 disabled:opacity-40 ${
+                    isRecording
                       ? "bg-red-500 text-white shadow-md"
                       : "bg-muted text-muted-foreground hover:bg-accent/30 hover:text-primary"
                   }`}
-                  title={isListening ? "Stop listening" : "Tap to speak"}
+                  title={isRecording ? "Stop recording" : "Tap to speak"}
                 >
-                  {isListening && (
+                  {isRecording && (
                     <motion.span
                       className="absolute inset-0 rounded-xl bg-red-400 opacity-60"
                       animate={{ scale: [1, 1.6, 1], opacity: [0.6, 0, 0.6] }}
                       transition={{ repeat: Infinity, duration: 1.2 }}
                     />
                   )}
-                  <Mic size={16} className="relative z-10" />
+                  {isRecording ? <Square size={15} className="relative z-10" /> : <Mic size={16} className="relative z-10" />}
                 </motion.button>
               )}
 
               <button
-                onClick={() => { if (!isListening && input.trim()) sendMessage(input); }}
-                disabled={chatMutation.isPending || isListening || !input.trim()}
+                onClick={() => { if (!isRecording && !isTranscribing && input.trim()) sendMessage(input); }}
+                disabled={chatMutation.isPending || isRecording || isTranscribing || !input.trim()}
                 className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity disabled:opacity-35 shadow flex-shrink-0"
               >
                 <Send size={15} />
