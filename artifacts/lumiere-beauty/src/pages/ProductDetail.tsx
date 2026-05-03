@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Star, ShoppingBag, Heart, Minus, Plus, ChevronDown } from "lucide-react";
+import { Star, ShoppingBag, Heart, Minus, Plus, ChevronDown, Camera, X as XIcon } from "lucide-react";
 import {
   useGetProductBySlug, useGetRelatedProducts, useGetReviews, useCreateReview, useAddToWishlist, useRemoveFromWishlist, getGetWishlistQueryKey
 } from "@workspace/api-client-react";
@@ -22,6 +22,7 @@ export default function ProductDetail() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState("");
   const [hoverStar, setHoverStar] = useState(0);
+  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
 
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -64,6 +65,34 @@ export default function ProductDetail() {
     }
   };
 
+  const resizeImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 600;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        };
+        img.onerror = reject;
+        img.src = e.target!.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handlePhotoAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).slice(0, 3 - reviewPhotos.length);
+    const resized = await Promise.all(files.map(resizeImage));
+    setReviewPhotos(prev => [...prev, ...resized].slice(0, 3));
+    e.target.value = "";
+  };
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) { toast({ title: "Sign in to submit a review" }); return; }
@@ -71,10 +100,10 @@ export default function ProductDetail() {
     try {
       await createReviewMutation.mutateAsync({
         productId: String(product.id),
-        data: { rating: reviewRating, title: reviewTitle, body: reviewBody },
+        data: { rating: reviewRating, title: reviewTitle, body: reviewBody, photos: reviewPhotos } as any,
       });
       toast({ title: "Review submitted" });
-      setReviewBody(""); setReviewTitle(""); setReviewRating(5);
+      setReviewBody(""); setReviewTitle(""); setReviewRating(5); setReviewPhotos([]);
       refetchReviews();
     } catch {
       toast({ title: "Error", variant: "destructive" });
@@ -293,6 +322,19 @@ export default function ProductDetail() {
                 </div>
                 {review.title && <p className="font-serif text-base mb-2">{review.title}</p>}
                 <p className="text-sm text-muted-foreground font-sans leading-relaxed">{review.body}</p>
+                {((review as any).photos as string[] | undefined)?.length ? (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {((review as any).photos as string[]).map((src: string, i: number) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt={`Review photo ${i + 1}`}
+                        className="w-20 h-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(src, "_blank")}
+                      />
+                    ))}
+                  </div>
+                ) : null}
                 <p className="text-xs text-muted-foreground font-sans mt-3">
                   {new Date(review.createdAt as string).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                 </p>
@@ -349,6 +391,39 @@ export default function ProductDetail() {
                     className="w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-sans resize-none"
                   />
                 </div>
+
+                {/* Photo upload */}
+                <div>
+                  <label className="text-xs tracking-widest uppercase font-sans block mb-2">Photos (optional, up to 3)</label>
+                  <div className="flex flex-wrap gap-3">
+                    {reviewPhotos.map((src, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                        <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewPhotos(prev => prev.filter((_, j) => j !== i))}
+                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+                        >
+                          <XIcon size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    {reviewPhotos.length < 3 && (
+                      <label className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center cursor-pointer gap-1 flex-shrink-0">
+                        <Camera size={18} className="text-muted-foreground" />
+                        <span className="text-[9px] tracking-wider uppercase text-muted-foreground font-sans">Add</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handlePhotoAdd}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={createReviewMutation.isPending}
