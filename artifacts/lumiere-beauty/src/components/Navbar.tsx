@@ -87,7 +87,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            <Link href="/account#wishlist" className="hidden lg:block">
+            <Link href="/wishlist" className="hidden lg:block" title="My Wishlist">
               <Heart size={18} className="text-muted-foreground hover:text-primary transition-colors" />
             </Link>
 
