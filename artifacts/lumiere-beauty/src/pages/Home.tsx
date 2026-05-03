@@ -171,7 +171,7 @@ export default function Home() {
               {/* Main image container */}
               <div className="relative rounded-full overflow-hidden aspect-square shadow-2xl border-4 border-white">
                 <img
-                  src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=700&q=90&fit=crop&crop=faces&auto=format"
+                  src="/hero-product.jpg"
                   alt="Beautiful woman with glowing skin"
                   className="w-full h-full object-cover"
                 />
