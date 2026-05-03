@@ -59,7 +59,6 @@ export default function Footer() {
               <li><Link href="/quiz" className="hover:text-primary transition-colors">Skin Quiz</Link></li>
               <li><Link href="/account" className="hover:text-primary transition-colors">My Account</Link></li>
               <li><Link href="/cart" className="hover:text-primary transition-colors">Cart</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Sign In</Link></li>
             </ul>
           </div>
 
