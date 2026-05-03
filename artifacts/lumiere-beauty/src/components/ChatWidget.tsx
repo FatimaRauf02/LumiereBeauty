@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Mic, Volume2, VolumeX } from "lucide-react";
 import { useSendChatMessage } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
@@ -20,7 +21,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm Lumiere, your beauty advisor. Tap the microphone, speak your question, and I'll respond in both text and voice.",
+      content: "Hi! I'm Lumiere, your beauty advisor. Ask me anything about skincare, hair care, or finding your perfect routine — by text or voice.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -31,18 +32,24 @@ export default function ChatWidget() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatMutation = useSendChatMessage();
+  const { toast } = useToast();
+
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const animRef = useRef<number | null>(null);
-  const messagesRef = useRef(messages);
   const isListeningRef = useRef(false);
+  const isPendingRef = useRef(false);
+  const messagesRef = useRef(messages);
+  // Keep a stable ref to latest sendMessage to avoid stale closures in rec.onend
+  const sendMessageRef = useRef<(text: string) => void>(() => {});
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { isPendingRef.current = chatMutation.isPending; }, [chatMutation.isPending]);
 
   useEffect(() => {
     if (open) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }, [messages, open, isListening]);
 
-  // ─── Animate bars when listening ───────────────────────────────────────────
+  // ─── Bar animation ─────────────────────────────────────────────────────────
   const startBarAnim = useCallback(() => {
     let t = 0;
     const tick = () => {
@@ -60,12 +67,11 @@ export default function ChatWidget() {
   }, []);
 
   const stopBarAnim = useCallback(() => {
-    if (animRef.current) cancelAnimationFrame(animRef.current);
-    animRef.current = null;
+    if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
     setBars([4, 4, 4, 4, 4]);
   }, []);
 
-  // ─── Text-to-Speech with female voice ──────────────────────────────────────
+  // ─── Text-to-Speech ─────────────────────────────────────────────────────────
   const speak = useCallback((text: string) => {
     if (!voiceEnabled || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -81,25 +87,19 @@ export default function ChatWidget() {
     const say = () => {
       const utt = new SpeechSynthesisUtterance(clean);
       utt.lang = "en-US";
-      utt.rate = 0.9;
+      utt.rate = 0.92;
       utt.pitch = 1.1;
       utt.volume = 1;
 
       const voices = window.speechSynthesis.getVoices();
-      // Priority: natural female voices
       const pick = voices.find(v =>
-        v.name === "Samantha" ||
-        v.name === "Karen" ||
-        v.name === "Victoria" ||
-        v.name === "Moira" ||
-        v.name.includes("Google UK English Female") ||
-        v.name.includes("Microsoft Zira") ||
-        v.name.includes("Microsoft Jenny") ||
+        v.name === "Samantha" || v.name === "Karen" || v.name === "Victoria" ||
+        v.name === "Moira" || v.name.includes("Google UK English Female") ||
+        v.name.includes("Microsoft Zira") || v.name.includes("Microsoft Jenny") ||
         (v.lang.startsWith("en") && v.name.toLowerCase().includes("female"))
       ) ?? voices.find(v => v.lang.startsWith("en"));
 
       if (pick) utt.voice = pick;
-
       utt.onstart = () => setIsSpeaking(true);
       utt.onend = () => setIsSpeaking(false);
       utt.onerror = () => setIsSpeaking(false);
@@ -121,12 +121,16 @@ export default function ChatWidget() {
   // ─── Send message to AI ─────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || chatMutation.isPending) return;
+    if (!trimmed) return;
+    // Use ref to get real-time pending state (avoids stale closure)
+    if (isPendingRef.current) {
+      toast({ title: "Please wait", description: "Still thinking about your last question..." });
+      return;
+    }
 
     const userMsg: Message = { role: "user", content: trimmed };
     const history = messagesRef.current;
-    const updated = [...history, userMsg];
-    setMessages(updated);
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
 
     try {
@@ -140,40 +144,43 @@ export default function ChatWidget() {
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
       speak(reply);
     } catch {
-      const err = "I'm having a moment. Please try again.";
-      setMessages(prev => [...prev, { role: "assistant", content: err }]);
-      speak(err);
+      const errMsg = "I'm having a moment — please try again.";
+      setMessages(prev => [...prev, { role: "assistant", content: errMsg }]);
+      speak(errMsg);
     }
-  }, [chatMutation, speak]);
+  }, [chatMutation, speak, toast]);
 
-  // ─── Voice recognition ──────────────────────────────────────────────────────
+  // Keep ref in sync with latest version (so rec.onend always calls current sendMessage)
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
+
+  // ─── Stop listening ──────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
     isListeningRef.current = false;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
     setIsListening(false);
-    setInput(prev => prev); // keep whatever was typed/transcribed
     stopBarAnim();
   }, [stopBarAnim]);
 
+  // ─── Start listening ─────────────────────────────────────────────────────────
   const startListening = useCallback(() => {
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SR) {
-      alert("Voice input requires Chrome or Edge browser. Please switch browsers.");
+      toast({
+        title: "Browser not supported",
+        description: "Voice input works in Chrome or Edge. Please type your question instead.",
+      });
       return;
     }
 
     if (isSpeaking) stopSpeaking();
-    if (recognitionRef.current) {
-      recognitionRef.current.abort();
-      recognitionRef.current = null;
-    }
+    if (recognitionRef.current) { recognitionRef.current.abort(); recognitionRef.current = null; }
 
     const rec = new SR();
     rec.lang = "en-US";
     rec.interimResults = true;
     rec.maxAlternatives = 1;
-    rec.continuous = false; // auto-stops when you pause speaking
+    rec.continuous = false;
 
     let finalTranscript = "";
 
@@ -194,18 +201,28 @@ export default function ChatWidget() {
           interim += e.results[i][0].transcript;
         }
       }
-      // Show live transcript in input box
       setInput(finalTranscript + interim);
     };
 
     rec.onerror = (e: SpeechRecognitionErrorEvent) => {
-      if (e.error === "not-allowed") {
-        alert("Microphone access denied. Please allow microphone in your browser settings and try again.");
-      }
       isListeningRef.current = false;
       setIsListening(false);
       stopBarAnim();
       recognitionRef.current = null;
+
+      const errorMessages: Record<string, string> = {
+        "not-allowed": "Microphone access denied. Please allow microphone in your browser settings, then try again.",
+        "no-speech": "No speech detected. Please tap the mic and speak clearly.",
+        "audio-capture": "No microphone found. Please connect a mic or type your question.",
+        "network": "Network issue with speech service. Please type your question instead.",
+        "aborted": "",
+        "service-not-allowed": "Speech recognition is not allowed here. Please type your question.",
+      };
+
+      const msg = errorMessages[e.error];
+      if (msg) {
+        toast({ title: "Voice input issue", description: msg });
+      }
     };
 
     rec.onend = () => {
@@ -216,15 +233,22 @@ export default function ChatWidget() {
 
       const captured = finalTranscript.trim();
       if (captured) {
-        setInput(captured); // show final text in input box
-        // Small delay so user sees what was captured before sending
-        setTimeout(() => sendMessage(captured), 300);
+        setInput(captured);
+        // Use ref so we always call the latest sendMessage (never stale)
+        setTimeout(() => sendMessageRef.current(captured), 350);
       }
     };
 
     recognitionRef.current = rec;
-    rec.start();
-  }, [isSpeaking, stopSpeaking, startBarAnim, stopBarAnim, sendMessage]);
+
+    try {
+      rec.start();
+    } catch {
+      toast({ title: "Could not start microphone", description: "Please try again or type your question." });
+      setIsListening(false);
+      stopBarAnim();
+    }
+  }, [isSpeaking, stopSpeaking, startBarAnim, stopBarAnim, toast]);
 
   const hasSpeech = typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
@@ -243,7 +267,7 @@ export default function ChatWidget() {
             className="w-[350px] bg-white border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden"
             style={{ height: 520 }}
           >
-            {/* ── Header ── */}
+            {/* Header */}
             <div className="bg-gradient-to-r from-primary to-accent px-4 py-3.5 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center font-serif text-white text-sm">L</div>
@@ -272,7 +296,7 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            {/* ── Messages ── */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-background">
               {messages.map((m, i) => (
                 <motion.div
@@ -310,12 +334,12 @@ export default function ChatWidget() {
               <div ref={bottomRef} />
             </div>
 
-            {/* ── Voice visualizer (shown while listening) ── */}
+            {/* Voice visualizer */}
             <AnimatePresence>
               {isListening && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 48, opacity: 1 }}
+                  animate={{ height: 52, opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   className="flex-shrink-0 bg-primary/5 border-t border-primary/10 flex items-center justify-center gap-1.5 px-5 overflow-hidden"
                 >
@@ -330,23 +354,23 @@ export default function ChatWidget() {
                       />
                     ))}
                   </div>
-                  <p className="text-primary text-xs font-sans ml-3 flex-shrink-0">Listening... speak now</p>
+                  <p className="text-primary text-xs font-sans ml-3 flex-shrink-0 animate-pulse">Speak now…</p>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* ── Input row ── */}
+            {/* Input row */}
             <div className="border-t border-border p-3 bg-white flex gap-2 items-end flex-shrink-0">
               <textarea
                 value={input}
-                onChange={e => !isListening && setInput(e.target.value)}
+                onChange={e => { if (!isListening) setInput(e.target.value); }}
                 onKeyDown={e => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (!isListening && input.trim()) sendMessage(input);
                   }
                 }}
-                placeholder={isListening ? "Listening... speak your question" : "Type or tap mic to speak..."}
+                placeholder={isListening ? "Speak now… I'm listening" : "Type or tap the mic…"}
                 rows={1}
                 readOnly={isListening}
                 className="flex-1 bg-muted border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans resize-none leading-relaxed"
@@ -358,9 +382,11 @@ export default function ChatWidget() {
                   whileTap={{ scale: 0.88 }}
                   onClick={isListening ? stopListening : startListening}
                   className={`relative p-2.5 rounded-xl transition-all flex-shrink-0 ${
-                    isListening ? "bg-red-500 text-white" : "bg-muted text-muted-foreground hover:bg-accent/30 hover:text-primary"
+                    isListening
+                      ? "bg-red-500 text-white shadow-md"
+                      : "bg-muted text-muted-foreground hover:bg-accent/30 hover:text-primary"
                   }`}
-                  title={isListening ? "Stop (will auto-send)" : "Tap to speak"}
+                  title={isListening ? "Stop listening" : "Tap to speak"}
                 >
                   {isListening && (
                     <motion.span
@@ -385,7 +411,7 @@ export default function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* ── Floating button ── */}
+      {/* Floating button */}
       <motion.button
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
