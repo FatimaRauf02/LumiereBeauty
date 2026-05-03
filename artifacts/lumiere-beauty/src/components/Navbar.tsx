@@ -43,7 +43,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+    <header className="fixed left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm" style={{ top: "var(--banner-height, 0px)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="font-serif text-2xl font-light tracking-[0.2em] text-primary hover:opacity-80 transition-opacity">
