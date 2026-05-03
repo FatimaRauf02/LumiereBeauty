@@ -4,6 +4,7 @@ import { ordersTable, cartItemsTable, productsTable, usersTable } from "@workspa
 import { eq } from "drizzle-orm";
 import { authenticate, type AuthRequest } from "../middlewares/authenticate";
 import { awardLoyaltyPoints } from "./loyalty";
+import { applyReferralBonus } from "./referrals";
 
 const router = Router();
 
@@ -82,6 +83,13 @@ router.post("/orders", authenticate, async (req: AuthRequest, res) => {
       await awardLoyaltyPoints(userId, total);
     } catch (loyaltyErr) {
       req.log.warn(loyaltyErr, "Failed to award loyalty points — order still created");
+    }
+
+    // Apply referral bonus if this user was referred
+    try {
+      await applyReferralBonus(userId);
+    } catch (refErr) {
+      req.log.warn(refErr, "Failed to apply referral bonus — order still created");
     }
 
     res.status(201).json(formatOrder(order));
