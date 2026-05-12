@@ -1,6 +1,6 @@
 # Lumière Beauty
 
-A full-stack luxury skincare and beauty e-commerce platform built as a pnpm monorepo. Features a full admin dashboard with Stripe payments and coupon discounts. 
+A PERN (PostgreSQL, Express, React, Node.js) stack luxury skincare and beauty e-commerce platform built as a pnpm monorepo. Features a full admin dashboard with Stripe payments and coupon discounts. 
 
 
 ## Tech Stack & Versions
